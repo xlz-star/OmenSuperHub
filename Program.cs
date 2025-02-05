@@ -185,7 +185,9 @@ namespace OmenSuperHub {
     }
 
     private static void optimiseSchedule() {
+      //定时通信避免功耗锁定
       GetFanCount();
+      //更新显示器连接到显卡状态
       monitorQuery();
       GC.Collect();
     }
@@ -523,15 +525,21 @@ namespace OmenSuperHub {
       ToolStripMenuItem monitorGPUMenu = new ToolStripMenuItem("GPU");
       monitorGPUMenu.DropDownItems.Add(CreateMenuItem("开启GPU监控", "monitorGPUGroup", (s, e) => {
         monitorGPU = true;
-        if(hasAuto)
-          autoMonitorGPU = false;
+        if (hasStopAuto)
+          autoStopMonitorGPU = false;
+        //重置自动开启标志
+        hasStartAuto = false;
+        autoStartMonitorGPU = true;
         libreComputer.IsGpuEnabled = true;
         SaveConfig("MonitorGPU");
       }, true));
       monitorGPUMenu.DropDownItems.Add(CreateMenuItem("关闭GPU监控", "monitorGPUGroup", (s, e) => {
-        hasAuto = false;
-        autoMonitorGPU = true;
         monitorGPU = false;
+        if (hasStartAuto)
+          autoStartMonitorGPU = false;
+        //重置自动关闭标志
+        hasStopAuto = false;
+        autoStopMonitorGPU = true;
         libreComputer.IsGpuEnabled = false;
         SaveConfig("MonitorGPU");
       }, false));
@@ -1108,12 +1116,12 @@ namespace OmenSuperHub {
     }
 
     static int countQuery = 0;
-    static bool autoMonitorGPU = true;
-    static bool hasAuto = false;
+    static bool autoStartMonitorGPU = true, autoStopMonitorGPU = true;//是否自动根据情况开/关GPU温度监测以节约能源
+    static bool hasStartAuto = false, hasStopAuto = false;//是否已经自动开/关过GPU温度监测，在手动开/关时重置
     private static void QueryHarware() {
       float openTempCPU = -300, libreTempCPU = -300, tempCPU = 50;
       float openPowerCPU = -1, librePowerCPU = -1;
-      bool getGPU = false;
+      bool getGPU = false;//是否获取到GPU温度
 
       if (openLib) {
         foreach (OpenIHardware hardware in openComputer.Hardware) {
@@ -1178,14 +1186,20 @@ namespace OmenSuperHub {
           CPUPower = librePowerCPU;
       } else
         CPUPower = openPowerCPU;
-      
+
+      //通过countQuery延时来确保温度正常读取
       if (countQuery <= 5 && monitorGPU)
         countQuery++;
-      if (countQuery > 5 && autoMonitorGPU && !isConnectedToNVIDIA && monitorGPU && ((GPUPower >= 0 && GPUPower <= 1.3) || !getGPU)) {
+      //自动关闭GPU监控
+      if (countQuery > 5 && autoStopMonitorGPU && !isConnectedToNVIDIA && monitorGPU && ((GPUPower >= 0 && GPUPower <= 1.3) || !getGPU)) {
         GPUPower = 0;
-        hasAuto = true;
+        getGPU = false;
+        hasStopAuto = true;
         countQuery = 0;
         monitorGPU = false;
+        //重置自动开启标志
+        hasStartAuto = false;
+        autoStartMonitorGPU = true;
         libreComputer.IsGpuEnabled = false;
         UpdateCheckedState("monitorGPUGroup", "关闭GPU监控");
         SaveConfig("MonitorGPU");
@@ -1193,6 +1207,25 @@ namespace OmenSuperHub {
         // 设置通知的文本和标题
         trayIcon.BalloonTipTitle = "状态更改提示";
         trayIcon.BalloonTipText = "检测到显卡进入低功耗状态，OSH已停止监控GPU以节约能源。\n手动打开GPU监控后，本次将不再自动停止监控GPU。";
+        trayIcon.BalloonTipIcon = ToolTipIcon.Info; // 图标类型
+        trayIcon.ShowBalloonTip(3000); // 显示气泡通知，持续时间为 3 秒
+      }
+      //自动开启GPU监控
+      if (autoStartMonitorGPU && isConnectedToNVIDIA && !monitorGPU) {
+        GPUPower = 0;
+        hasStartAuto = true;
+        countQuery = 0;
+        monitorGPU = true;
+        //重置自动关闭标志
+        hasStopAuto = false;
+        autoStopMonitorGPU = true;
+        libreComputer.IsGpuEnabled = true;
+        UpdateCheckedState("monitorGPUGroup", "开启GPU监控");
+        SaveConfig("MonitorGPU");
+
+        // 设置通知的文本和标题
+        trayIcon.BalloonTipTitle = "状态更改提示";
+        trayIcon.BalloonTipText = "检测到显卡连接到显示器，OSH已开始监控GPU。\n手动关闭GPU监控后，本次将不再自动开始监控GPU。";
         trayIcon.BalloonTipIcon = ToolTipIcon.Info; // 图标类型
         trayIcon.ShowBalloonTip(3000); // 显示气泡通知，持续时间为 3 秒
       }
