@@ -45,7 +45,6 @@ namespace OmenSuperHub {
     static float respondSpeed = 0.4f;
     private static Dictionary<float, List<int>> CPUTempFanMap = new Dictionary<float, List<int>>();
     private static Dictionary<float, List<int>> GPUTempFanMap = new Dictionary<float, List<int>>();
-    static System.Threading.Timer biosCountTimer;
     static System.Threading.Timer fanControlTimer;
     static System.Timers.Timer tooltipUpdateTimer; // Timer for updating tooltip
     static System.Windows.Forms.Timer checkFloatingTimer, optimiseTimer;
@@ -56,24 +55,6 @@ namespace OmenSuperHub {
     static void Main(string[] args) {
       bool isNewInstance;
       using (Mutex mutex = new Mutex(true, "MyUniqueAppMutex", out isNewInstance)) {
-        //if (args.Length > 0 && args[0] == "OmenKey") {
-        //  try {
-        //    using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\OmenSuperHub", true)) {
-        //      if (key != null) {
-        //        floatingBar = (string)key.GetValue("FloatingBar", "off");
-        //        if (floatingBar == "off")
-        //          floatingBar = "on";
-        //        else
-        //          floatingBar = "off";
-        //        key.SetValue("FloatingBar", floatingBar);
-        //      }
-        //    }
-        //  } catch (Exception ex) {
-        //    Console.WriteLine($"Error restoring configuration: {ex.Message}");
-        //  }
-        //  return;
-        //}
-        
         if (!isNewInstance) {
           return;
         }
