@@ -17,8 +17,6 @@ OmenSuperHub实现了惠普暗夜精灵（HP OMEN）系列的控制软件Omen Ga
 
 * 要长时间使用本程序替代OGH，请关闭OGH自启动并开启OSH自启
 
-* 温度监控可能不支持第14代Intel之后的CPU
-
 链接
 =
 * **@GeographicCone**的[OmenMon](https://github.com/OmenMon/OmenMon)
