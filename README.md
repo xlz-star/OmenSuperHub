@@ -13,9 +13,9 @@ OmenSuperHub实现了惠普暗夜精灵（HP OMEN）系列的控制软件Omen Ga
 
 链接
 =
-**@GeographicCone**的[OmenMon](https://github.com/OmenMon/OmenMon)
+* **@GeographicCone**的[OmenMon](https://github.com/OmenMon/OmenMon)
 
-**@GeographicCone**的[OmenHwCtl](https://github.com/GeographicCone/OmenHwCtl)
+* **@GeographicCone**的[OmenHwCtl](https://github.com/GeographicCone/OmenHwCtl)
 
 这两个项目是本项目的主要灵感来源，作者不仅给出了交互命令，还给出了探索OGH交互的方法，可惜的是缺少对较新机型的支持，无法脱离OGH运行。
 
