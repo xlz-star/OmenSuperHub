@@ -71,9 +71,9 @@ namespace OmenSuperHub {
 
         powerOnline = SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online;
         monitorQuery();
-        SetConcurrentCpuPowerLimit(254);
-        SetCpuPowerLimit(254);
-        SetCpuPowerMaxLimit(254);
+        //SetConcurrentCpuPowerLimit(254);
+        //SetCpuPowerLimit(254);
+        //SetCpuPowerMaxLimit(254);
 
         Version version = Assembly.GetExecutingAssembly().GetName().Version;
         string versionString = version.ToString().Replace(".", "");
