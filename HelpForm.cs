@@ -44,7 +44,8 @@ namespace OmenSuperHub {
         Dock = DockStyle.Fill,
         Text = "版本号：" + version +
          "\n更新说明：\n" +
-         "（1）新增功能：NVIDIA显卡连接到显示器后，自动开启GPU监控。\n\n" +
+         "（1）移除了部分意义不明确的CPU功率相关指令；\n" +
+         "（2）新增功能：NVIDIA显卡连接到显示器后，自动开启GPU监控。\n\n" +
 
          "本项目已开源至Github：https://github.com/breadeding/OmenSuperHub\n\n" +
          "一.   “风扇配置”菜单说明：\n" +
