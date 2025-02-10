@@ -33,7 +33,7 @@ namespace OmenSuperHub {
     static float GPUTemp = 40;
     static float CPUPower = 0;
     static float GPUPower = 0;
-    static int DBVersion = 2, countDB = 0, countDBInit = 5, CPULimitDB = 30;
+    static int DBVersion = 2, countDB = 0, countDBInit = 5, CPULimitDB = 25;
     static int textSize = 48;
     static int countRestore = 0, gpuClock = 0;
     static int alreadyRead = 0, alreadyReadCode = 1000;
@@ -71,9 +71,6 @@ namespace OmenSuperHub {
 
         powerOnline = SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online;
         monitorQuery();
-        //SetConcurrentCpuPowerLimit(254);
-        //SetCpuPowerLimit(254);
-        //SetCpuPowerMaxLimit(254);
 
         Version version = Assembly.GetExecutingAssembly().GetName().Version;
         string versionString = version.ToString().Replace(".", "");
@@ -1069,7 +1066,7 @@ namespace OmenSuperHub {
             SetFanMode(0x30);
           }
 
-          if (CPUPower > CPULimitDB + 1) {
+          if (CPUPower > CPULimitDB + 10) {
             if (powerOnline && GPUPowerLimits() >= 0) {
               MessageBox.Show($"请在CPU低负载下解锁", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
               command = $"pnputil /enable-device {deviceId}";
