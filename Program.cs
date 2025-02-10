@@ -844,12 +844,22 @@ namespace OmenSuperHub {
     private static void ChangeDBVersion(int kind) {
       string infFileName = "nvpcf.inf";
       string currentPath = AppDomain.CurrentDomain.BaseDirectory;
+
+      // 提取资源中的nvpcf文件到当前目录
+      string extractedInfFilePath = Path.Combine(currentPath, "nvpcf.inf");
+      string extractedSysFilePath = Path.Combine(currentPath, "nvpcf.sys");
+      string extractedCatFilePath = Path.Combine(currentPath, "nvpcf.CAT");
+
+      ExtractResourceToFile("OmenSuperHub.Resources.nvpcf_inf.inf", extractedInfFilePath);
+      ExtractResourceToFile("OmenSuperHub.Resources.nvpcf_sys.sys", extractedSysFilePath);
+      ExtractResourceToFile("OmenSuperHub.Resources.nvpcf_cat.CAT", extractedCatFilePath);
+
       string targetVersion = "08/28/2023 31.0.15.3730";
-      string driverFile = Path.Combine(currentPath, "nvpcf.inf_537.42", "nvpcf.inf");
-      if (kind == 2) {
-        targetVersion = "03/02/2024, 32.0.15.5546";
-        driverFile = Path.Combine(currentPath, "nvpcf.inf_560.70", "nvpcf.inf");
-      }
+      string driverFile = Path.Combine(currentPath, "nvpcf.inf");
+      //if (kind == 2) {
+      //  targetVersion = "03/02/2024, 32.0.15.5546";
+      //  driverFile = Path.Combine(currentPath, "nvpcf.inf_560.70", "nvpcf.inf");
+      //}
 
       bool hasVersion = false;
 
@@ -914,8 +924,34 @@ namespace OmenSuperHub {
       // 清理临时文件
       //File.Delete(driversListFile);
 
+      // 删除提取的nvpcf文件
+      DeleteExtractedFiles(extractedInfFilePath);
+      DeleteExtractedFiles(extractedSysFilePath);
+      DeleteExtractedFiles(extractedCatFilePath);
+
       Console.WriteLine("操作完成.");
       Console.ReadLine();
+    }
+
+    private static void ExtractResourceToFile(string resourceName, string outputFilePath) {
+      using (Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)) {
+        if (resourceStream != null) {
+          using (FileStream fileStream = new FileStream(outputFilePath, FileMode.Create)) {
+            resourceStream.CopyTo(fileStream);
+          }
+          Console.WriteLine($"资源文件已提取到: {outputFilePath}");
+        } else {
+          Console.WriteLine($"无法找到资源: {resourceName}");
+        }
+      }
+    }
+
+    private static void DeleteExtractedFiles(string filePath) {
+      // 删除提取的文件
+      if (File.Exists(filePath)) {
+        File.Delete(filePath);
+        Console.WriteLine($"删除临时文件:{filePath}");
+      }
     }
 
     static ProcessResult ExecuteCommand(string command) {

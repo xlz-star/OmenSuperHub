@@ -305,6 +305,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Resources\nvpcf_cat.CAT" />
+    <EmbeddedResource Include="Resources\nvpcf_sys.sys" />
     <None Include="Resources\smallfan.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -312,6 +314,9 @@
       <Project>{b0397530-545a-471d-bb74-027ae456df1a}</Project>
       <Name>OpenHardwareMonitorLib</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\nvpcf_inf.inf" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
