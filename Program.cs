@@ -27,7 +27,7 @@ using System.IO.Pipes;
 namespace OmenSuperHub {
   static class Program {
     [DllImport("user32.dll")]
-    private static extern bool SetProcessDPIAware();
+    static extern bool SetProcessDPIAware();
 
     static float CPUTemp = 50;
     static float GPUTemp = 40;
@@ -43,8 +43,8 @@ namespace OmenSuperHub {
     static bool openLib = true, monitorGPU = true, monitorFan = true, isConnectedToNVIDIA = true, powerOnline = true, checkFloating = false;
     static List<int> fanSpeedNow = new List<int> { 20, 23 };
     static float respondSpeed = 0.4f;
-    private static Dictionary<float, List<int>> CPUTempFanMap = new Dictionary<float, List<int>>();
-    private static Dictionary<float, List<int>> GPUTempFanMap = new Dictionary<float, List<int>>();
+    static Dictionary<float, List<int>> CPUTempFanMap = new Dictionary<float, List<int>>();
+    static Dictionary<float, List<int>> GPUTempFanMap = new Dictionary<float, List<int>>();
     static System.Threading.Timer fanControlTimer;
     static System.Timers.Timer tooltipUpdateTimer; // Timer for updating tooltip
     static System.Windows.Forms.Timer checkFloatingTimer, optimiseTimer;
@@ -92,9 +92,13 @@ namespace OmenSuperHub {
         fanControlTimer = new System.Threading.Timer((e) => {
           int fanSpeed1 = GetFanSpeedForTemperature(0) / 100;
           int fanSpeed2 = GetFanSpeedForTemperature(1) / 100;
-          if (fanSpeed1 != fanSpeedNow[0] || fanSpeed2 != fanSpeedNow[1]) {
-            SetFanLevel(fanSpeed1, fanSpeed2);
+          if (monitorFan) {
+            if (fanSpeed1 != fanSpeedNow[0] || fanSpeed2 != fanSpeedNow[1]) {
+              SetFanLevel(fanSpeed1, fanSpeed2);
+            }
           }
+          else
+            SetFanLevel(fanSpeed1, fanSpeed2);
         }, null, 100, 1000);
 
         getOmenKeyTask();
@@ -111,7 +115,7 @@ namespace OmenSuperHub {
           alreadyRead = alreadyReadCode;
           SaveConfig("AlreadyRead");
         }
-        
+
         SystemEvents.PowerModeChanged += new PowerModeChangedEventHandler(OnPowerChange);
         
         Application.Run();
@@ -119,7 +123,7 @@ namespace OmenSuperHub {
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    public struct DISPLAY_DEVICE {
+    struct DISPLAY_DEVICE {
       [MarshalAs(UnmanagedType.U4)]
       public int cb;
       [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
@@ -135,7 +139,7 @@ namespace OmenSuperHub {
     }
 
     [Flags()]
-    public enum DisplayDeviceStateFlags : int {
+    enum DisplayDeviceStateFlags : int {
       /// <summary>The device is part of the desktop.</summary>
       AttachedToDesktop = 0x1,
       MultiDriver = 0x2,
@@ -154,14 +158,14 @@ namespace OmenSuperHub {
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    public static extern bool EnumDisplayDevices(
+    static extern bool EnumDisplayDevices(
         string lpDevice,
         uint iDevNum,
         ref DISPLAY_DEVICE lpDisplayDevice,
         uint dwFlags);
 
     // 判断独显未工作条件
-    private static void monitorQuery() {
+    static void monitorQuery() {
       if(Screen.AllScreens.Length != 1)
         return;
       DISPLAY_DEVICE d = new DISPLAY_DEVICE();
@@ -181,7 +185,18 @@ namespace OmenSuperHub {
       isConnectedToNVIDIA = true;
     }
 
-    private static void optimiseSchedule() {
+    static int flagStart = 0;
+    static void optimiseSchedule() {
+      // 延时等待风扇恢复响应
+      if (flagStart < 5) {
+        flagStart++;
+        if (fanControl.Contains(" RPM")) {
+          SetMaxFanSpeedOff();
+          int rpmValue = int.Parse(fanControl.Replace(" RPM", "").Trim());
+          SetFanLevel(rpmValue / 100, rpmValue / 100);
+        }
+      }
+
       //定时通信避免功耗锁定
       GetFanCount();
       //更新显示器连接到显卡状态
@@ -312,7 +327,7 @@ namespace OmenSuperHub {
     }
 
     // Initialize tray icon
-    private static void InitTrayIcon() {
+    static void InitTrayIcon() {
       try {
         // 读取图标配置
         using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\OmenSuperHub")) {
@@ -655,7 +670,7 @@ namespace OmenSuperHub {
       tooltipUpdateTimer.Start();
     }
 
-    private static void RestoreCPUPower() {
+    static void RestoreCPUPower() {
       // 恢复CPU功耗设定
       if (cpuPower == "max") {
         SetCpuPowerLimit(254);
@@ -667,7 +682,7 @@ namespace OmenSuperHub {
       }
     }
 
-    private static void TrayIcon_MouseClick(object sender, MouseEventArgs e) {
+    static void TrayIcon_MouseClick(object sender, MouseEventArgs e) {
       if (e.Button == MouseButtons.Left) {
         //MainForm.Instance.Show();
         //MainForm.Instance.TopMost = true;
@@ -675,7 +690,7 @@ namespace OmenSuperHub {
       }
     }
 
-    private static bool CheckCustomIcon() {
+    static bool CheckCustomIcon() {
       string currentPath = AppDomain.CurrentDomain.BaseDirectory;
       string iconPath = Path.Combine(currentPath, "custom.ico");
       // 检查图标文件是否存在
@@ -687,7 +702,7 @@ namespace OmenSuperHub {
       }
     }
 
-    private static void SetCustomIcon() {
+    static void SetCustomIcon() {
       string currentPath = AppDomain.CurrentDomain.BaseDirectory;
       string iconPath = Path.Combine(currentPath, "custom.ico");
       // 检查图标文件是否存在
@@ -700,7 +715,7 @@ namespace OmenSuperHub {
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     extern static bool DestroyIcon(IntPtr handle);
-    private static void GenerateDynamicIcon(int number) {
+    static void GenerateDynamicIcon(int number) {
       using (Bitmap bitmap = new Bitmap(128, 128)) {
         using (Graphics graphics = Graphics.FromImage(bitmap)) {
           graphics.Clear(Color.Transparent); // 清除背景
@@ -729,7 +744,7 @@ namespace OmenSuperHub {
     }
 
     // 获取显卡数字代号
-    private static string GetNVIDIAModel() {
+    static string GetNVIDIAModel() {
       // 执行 nvidia-smi 命令并获取输出
       var result = ExecuteCommand("nvidia-smi --query-gpu=name --format=csv");
 
@@ -769,7 +784,7 @@ namespace OmenSuperHub {
     }
 
     // 设置显卡频率限制
-    private static bool SetGPUClockLimit(int freq) {
+    static bool SetGPUClockLimit(int freq) {
       if(freq < 210) {
         ExecuteCommand("nvidia-smi --reset-gpu-clocks");
         return false;
@@ -780,7 +795,7 @@ namespace OmenSuperHub {
     }
 
     // 判断是否为最大显卡功耗并得到当前显卡功耗限制
-    private static float GPUPowerLimits() {
+    static float GPUPowerLimits() {
       // state为“当前显卡功耗限制”或“显卡功耗限制已锁定”
       string output = ExecuteCommand("nvidia-smi -q -d POWER").Output;
       // 定义正则表达式模式以提取当前功率限制和最大功率限制
@@ -811,7 +826,7 @@ namespace OmenSuperHub {
       }
     }
 
-    private static bool CheckDBVersion(int kind) {
+    static bool CheckDBVersion(int kind) {
       ProcessResult result = ExecuteCommand("nvidia-smi");
 
       if (result.ExitCode == 0) {
@@ -841,7 +856,7 @@ namespace OmenSuperHub {
       }
     }
 
-    private static void ChangeDBVersion(int kind) {
+    static void ChangeDBVersion(int kind) {
       string infFileName = "nvpcf.inf";
       string currentPath = AppDomain.CurrentDomain.BaseDirectory;
 
@@ -933,7 +948,7 @@ namespace OmenSuperHub {
       Console.ReadLine();
     }
 
-    private static void ExtractResourceToFile(string resourceName, string outputFilePath) {
+    static void ExtractResourceToFile(string resourceName, string outputFilePath) {
       using (Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)) {
         if (resourceStream != null) {
           using (FileStream fileStream = new FileStream(outputFilePath, FileMode.Create)) {
@@ -946,7 +961,7 @@ namespace OmenSuperHub {
       }
     }
 
-    private static void DeleteExtractedFiles(string filePath) {
+    static void DeleteExtractedFiles(string filePath) {
       // 删除提取的文件
       if (File.Exists(filePath)) {
         File.Delete(filePath);
@@ -985,7 +1000,7 @@ namespace OmenSuperHub {
       public string Error { get; set; }
     }
 
-    private static ToolStripMenuItem CreateMenuItem(string text, string group, EventHandler action, bool isChecked) {
+    static ToolStripMenuItem CreateMenuItem(string text, string group, EventHandler action, bool isChecked) {
       var item = new ToolStripMenuItem(text) {
         Tag = group,
         Checked = isChecked // Set initial checked state
@@ -1029,7 +1044,7 @@ namespace OmenSuperHub {
       return item;
     }
 
-    private static void UpdateCheckedState(string group, string itemText = null, ToolStripMenuItem menuItemToCheck = null) {
+    static void UpdateCheckedState(string group, string itemText = null, ToolStripMenuItem menuItemToCheck = null) {
       if (menuItemToCheck == null) {
         menuItemToCheck = FindMenuItem(trayIcon.ContextMenuStrip.Items, itemText);
 
@@ -1054,7 +1069,7 @@ namespace OmenSuperHub {
     }
 
     // 递归查找指定文本的菜单项
-    private static ToolStripMenuItem FindMenuItem(ToolStripItemCollection items, string itemText, int select = 2) {
+    static ToolStripMenuItem FindMenuItem(ToolStripItemCollection items, string itemText, int select = 2) {
       foreach (ToolStripMenuItem menuItem in items.OfType<ToolStripMenuItem>()) {
         if (menuItem.Text == itemText) {
           return menuItem;
@@ -1078,7 +1093,8 @@ namespace OmenSuperHub {
     // 状态栏定时更新任务+硬件查询
     static void UpdateTooltip() {
       QueryHarware();
-      fanSpeedNow = GetFanLevel();
+      if (monitorFan)
+        fanSpeedNow = GetFanLevel();
       trayIcon.Text = monitorText();
       // Console.WriteLine("UpdateTooltip");
 
@@ -1151,7 +1167,7 @@ namespace OmenSuperHub {
     static int countQuery = 0;
     static bool autoStartMonitorGPU = true, autoStopMonitorGPU = true;//是否自动根据情况开/关GPU温度监测以节约能源
     static bool hasStartAuto = false, hasStopAuto = false;//是否已经自动开/关过GPU温度监测，在手动开/关时重置
-    private static void QueryHarware() {
+    static void QueryHarware() {
       float openTempCPU = -300, libreTempCPU = -300, tempCPU = 50;
       float openPowerCPU = -1, librePowerCPU = -1;
       bool getGPU = false;//是否获取到GPU温度
@@ -1174,34 +1190,36 @@ namespace OmenSuperHub {
         }
       }
 
-      foreach (LibreIHardware hardware in libreComputer.Hardware) {
-        if (hardware.HardwareType == LibreHardwareType.Cpu || hardware.HardwareType == LibreHardwareType.GpuNvidia || hardware.HardwareType == LibreHardwareType.GpuAmd) {
-          hardware.Update();
+      if (monitorGPU) {
+        foreach (LibreIHardware hardware in libreComputer.Hardware) {
+          if (hardware.HardwareType == LibreHardwareType.Cpu || hardware.HardwareType == LibreHardwareType.GpuNvidia || hardware.HardwareType == LibreHardwareType.GpuAmd) {
+            hardware.Update();
 
-          foreach (LibreISensor sensor in hardware.Sensors) {
-            if (hardware.HardwareType == LibreHardwareType.Cpu) {
-              if (sensor.Name == "CPU Package" && sensor.SensorType == LibreSensorType.Temperature) {
-                libreTempCPU = (int)sensor.Value.GetValueOrDefault();
-              }
-              if (sensor.Name == "CPU Package" && sensor.SensorType == LibreSensorType.Power) {
-                librePowerCPU = sensor.Value.GetValueOrDefault();
-              }
-            } else if (monitorGPU && hardware.HardwareType == LibreHardwareType.GpuNvidia) {
-              if (sensor.Name == "GPU Core" && sensor.SensorType == LibreSensorType.Temperature) {
-                GPUTemp = (int)sensor.Value.GetValueOrDefault() * respondSpeed + GPUTemp * (1.0f - respondSpeed);
-              }
-              if (sensor.Name == "GPU Package" && sensor.SensorType == LibreSensorType.Power) {
-                getGPU = true;
-                if ((int)(sensor.Value.GetValueOrDefault() * 10) == 5900)
-                  GPUPower = 0;
-                else
-                  GPUPower = sensor.Value.GetValueOrDefault();
+            foreach (LibreISensor sensor in hardware.Sensors) {
+              if (hardware.HardwareType == LibreHardwareType.Cpu) {
+                if (sensor.Name == "CPU Package" && sensor.SensorType == LibreSensorType.Temperature) {
+                  libreTempCPU = (int)sensor.Value.GetValueOrDefault();
+                }
+                if (sensor.Name == "CPU Package" && sensor.SensorType == LibreSensorType.Power) {
+                  librePowerCPU = sensor.Value.GetValueOrDefault();
+                }
+              } else if (monitorGPU && hardware.HardwareType == LibreHardwareType.GpuNvidia) {
+                if (sensor.Name == "GPU Core" && sensor.SensorType == LibreSensorType.Temperature) {
+                  GPUTemp = (int)sensor.Value.GetValueOrDefault() * respondSpeed + GPUTemp * (1.0f - respondSpeed);
+                }
+                if (sensor.Name == "GPU Package" && sensor.SensorType == LibreSensorType.Power) {
+                  getGPU = true;
+                  if ((int)(sensor.Value.GetValueOrDefault() * 10) == 5900)
+                    GPUPower = 0;
+                  else
+                    GPUPower = sensor.Value.GetValueOrDefault();
+                }
               }
             }
           }
         }
       }
-
+      
       if (openLib && libreTempCPU > -299 && librePowerCPU >= 0) {
         openLib = false;
         openComputer.Close();
@@ -1277,7 +1295,7 @@ namespace OmenSuperHub {
       //Console.WriteLine($"CPU: {CPU}{tempUnit}, GPU: {GPU}{tempUnit}, Max: {Math.Max(CPU, GPU + 10)}{tempUnit}");
     }
 
-    private static void LoadDefaultFanConfig(string filePath, float silentCoef) {
+    static void LoadDefaultFanConfig(string filePath, float silentCoef) {
       byte[] fanTableBytes = GetFanTable();
 
       int numberOfFans = fanTableBytes[0];
@@ -1348,7 +1366,7 @@ namespace OmenSuperHub {
       File.WriteAllLines(filePath, lines);
     }
 
-    private static void LoadFanConfig(string filePath) {
+    static void LoadFanConfig(string filePath) {
       float silentCoef = 1;
       if (filePath == "silent.txt")
         silentCoef = 0.8f;
@@ -1391,7 +1409,7 @@ namespace OmenSuperHub {
     }
 
     // Generate default temperature-fan speed mapping
-    private static void GenerateDefaultMapping(string filePath) {
+    static void GenerateDefaultMapping(string filePath) {
       lock (CPUTempFanMap) {
         CPUTempFanMap.Clear();
         CPUTempFanMap[30] = new List<int> { 0, 0 };
@@ -1412,7 +1430,7 @@ namespace OmenSuperHub {
     }
 
     // Get fan speed for CPU and GPU and return the maximum
-    private static int GetFanSpeedForTemperature(int fanIndex) {
+    static int GetFanSpeedForTemperature(int fanIndex) {
       if (CPUTempFanMap.Count == 0 || GPUTempFanMap.Count == 0) return 0;
 
       int cpuFanSpeed = GetFanSpeedForSpecificTemperature(CPUTemp, CPUTempFanMap, fanIndex);
@@ -1426,7 +1444,7 @@ namespace OmenSuperHub {
     }
 
     // Helper function to calculate fan speed for a specific temperature map
-    private static int GetFanSpeedForSpecificTemperature(float temperature, Dictionary<float, List<int>> tempFanMap, int fanIndex) {
+    static int GetFanSpeedForSpecificTemperature(float temperature, Dictionary<float, List<int>> tempFanMap, int fanIndex) {
       var lowerBound = tempFanMap.Keys
                       .OrderBy(k => k)
                       .Where(t => t <= temperature)
@@ -1804,7 +1822,7 @@ namespace OmenSuperHub {
     }
 
     // 显示浮窗
-    public static void ShowFloatingForm() {
+    static void ShowFloatingForm() {
       if (floatingForm == null || floatingForm.IsDisposed) {
         floatingForm = new FloatingForm(monitorText(), textSize, floatingBarLoc);
         floatingForm.Show();
@@ -1816,7 +1834,7 @@ namespace OmenSuperHub {
     }
 
     // 关闭浮窗
-    public static void CloseFloatingForm() {
+    static void CloseFloatingForm() {
       if (floatingForm != null && !floatingForm.IsDisposed) {
         lock (floatingForm) {
           floatingForm.Close();
@@ -1827,7 +1845,7 @@ namespace OmenSuperHub {
     }
 
     // 更新浮窗的文字内容
-    public static void UpdateFloatingText() {
+    static void UpdateFloatingText() {
       if (floatingForm != null && !floatingForm.IsDisposed) {
         lock (floatingForm) {
           floatingForm.TopMost = true;
@@ -1837,7 +1855,7 @@ namespace OmenSuperHub {
     }
 
     //生成监控信息
-    public static string monitorText() {
+    static string monitorText() {
       string str = $"CPU: {CPUTemp:F1}°C, {CPUPower:F1}W";
       if (monitorGPU)
         str += $"\nGPU: {GPUTemp:F1}°C, {GPUPower:F1}W";
@@ -1846,7 +1864,7 @@ namespace OmenSuperHub {
       return str;
     }
 
-    private static void Exit() {
+    static void Exit() {
       if (omenKey == "custom") {
         OmenKeyOff();
       }
