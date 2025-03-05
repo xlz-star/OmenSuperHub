@@ -45,8 +45,9 @@ namespace OmenSuperHub {
         Dock = DockStyle.Fill,
         Text = "版本号：" + version +
          "\n更新说明：\n" +
-         "（1）将DB驱动嵌入到exe中，osh程序现在开始可以独立运行；\n" +
-         "（2）放宽解锁DB的CPU功耗限制。\n\n" +
+         "（1）DB解锁失败后将自动重试一次；\n" +
+         "（2）修复重启后可能无法恢复固定风扇转速的问题；\n" +
+         "（3）修复悬浮窗崩溃问题。\n\n" +
 
          "本项目已开源至Github：https://github.com/breadeding/OmenSuperHub\n\n" +
          "一.   “风扇配置”菜单说明：\n" +
