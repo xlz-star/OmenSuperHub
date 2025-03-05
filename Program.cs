@@ -1190,36 +1190,34 @@ namespace OmenSuperHub {
         }
       }
 
-      if (monitorGPU) {
-        foreach (LibreIHardware hardware in libreComputer.Hardware) {
-          if (hardware.HardwareType == LibreHardwareType.Cpu || hardware.HardwareType == LibreHardwareType.GpuNvidia || hardware.HardwareType == LibreHardwareType.GpuAmd) {
-            hardware.Update();
+      foreach (LibreIHardware hardware in libreComputer.Hardware) {
+        if (hardware.HardwareType == LibreHardwareType.Cpu || hardware.HardwareType == LibreHardwareType.GpuNvidia || hardware.HardwareType == LibreHardwareType.GpuAmd) {
+          hardware.Update();
 
-            foreach (LibreISensor sensor in hardware.Sensors) {
-              if (hardware.HardwareType == LibreHardwareType.Cpu) {
-                if (sensor.Name == "CPU Package" && sensor.SensorType == LibreSensorType.Temperature) {
-                  libreTempCPU = (int)sensor.Value.GetValueOrDefault();
-                }
-                if (sensor.Name == "CPU Package" && sensor.SensorType == LibreSensorType.Power) {
-                  librePowerCPU = sensor.Value.GetValueOrDefault();
-                }
-              } else if (monitorGPU && hardware.HardwareType == LibreHardwareType.GpuNvidia) {
-                if (sensor.Name == "GPU Core" && sensor.SensorType == LibreSensorType.Temperature) {
-                  GPUTemp = (int)sensor.Value.GetValueOrDefault() * respondSpeed + GPUTemp * (1.0f - respondSpeed);
-                }
-                if (sensor.Name == "GPU Package" && sensor.SensorType == LibreSensorType.Power) {
-                  getGPU = true;
-                  if ((int)(sensor.Value.GetValueOrDefault() * 10) == 5900)
-                    GPUPower = 0;
-                  else
-                    GPUPower = sensor.Value.GetValueOrDefault();
-                }
+          foreach (LibreISensor sensor in hardware.Sensors) {
+            if (hardware.HardwareType == LibreHardwareType.Cpu) {
+              if (sensor.Name == "CPU Package" && sensor.SensorType == LibreSensorType.Temperature) {
+                libreTempCPU = (int)sensor.Value.GetValueOrDefault();
+              }
+              if (sensor.Name == "CPU Package" && sensor.SensorType == LibreSensorType.Power) {
+                librePowerCPU = sensor.Value.GetValueOrDefault();
+              }
+            } else if (monitorGPU && hardware.HardwareType == LibreHardwareType.GpuNvidia) {
+              if (sensor.Name == "GPU Core" && sensor.SensorType == LibreSensorType.Temperature) {
+                GPUTemp = (int)sensor.Value.GetValueOrDefault() * respondSpeed + GPUTemp * (1.0f - respondSpeed);
+              }
+              if (sensor.Name == "GPU Package" && sensor.SensorType == LibreSensorType.Power) {
+                getGPU = true;
+                if ((int)(sensor.Value.GetValueOrDefault() * 10) == 5900)
+                  GPUPower = 0;
+                else
+                  GPUPower = sensor.Value.GetValueOrDefault();
               }
             }
           }
         }
       }
-      
+
       if (openLib && libreTempCPU > -299 && librePowerCPU >= 0) {
         openLib = false;
         openComputer.Close();
