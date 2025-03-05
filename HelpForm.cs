@@ -100,7 +100,7 @@ namespace OmenSuperHub {
 
       // 添加 LinkClicked 事件处理
       richTextBox.LinkClicked += (sender, e) => {
-          Process.Start(new ProcessStartInfo(e.LinkText) { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(e.LinkText) { UseShellExecute = true });
       };
 
       panel.Controls.Add(richTextBox);

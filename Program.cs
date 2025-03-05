@@ -33,7 +33,7 @@ namespace OmenSuperHub {
     static float GPUTemp = 40;
     static float CPUPower = 0;
     static float GPUPower = 0;
-    static int DBVersion = 2, countDB = 0, countDBInit = 5, CPULimitDB = 25;
+    static int DBVersion = 2, countDB = 0, countDBInit = 5, tryTimes = 0, CPULimitDB = 25;
     static int textSize = 48;
     static int countRestore = 0, gpuClock = 0;
     static int alreadyRead = 0, alreadyReadCode = 1000;
@@ -96,8 +96,7 @@ namespace OmenSuperHub {
             if (fanSpeed1 != fanSpeedNow[0] || fanSpeed2 != fanSpeedNow[1]) {
               SetFanLevel(fanSpeed1, fanSpeed2);
             }
-          }
-          else
+          } else
             SetFanLevel(fanSpeed1, fanSpeed2);
         }, null, 100, 1000);
 
@@ -117,7 +116,7 @@ namespace OmenSuperHub {
         }
 
         SystemEvents.PowerModeChanged += new PowerModeChangedEventHandler(OnPowerChange);
-        
+
         Application.Run();
       }
     }
@@ -166,7 +165,7 @@ namespace OmenSuperHub {
 
     // 判断独显未工作条件
     static void monitorQuery() {
-      if(Screen.AllScreens.Length != 1)
+      if (Screen.AllScreens.Length != 1)
         return;
       DISPLAY_DEVICE d = new DISPLAY_DEVICE();
       d.cb = Marshal.SizeOf(d);
@@ -759,7 +758,7 @@ namespace OmenSuperHub {
         string modelName = null;
         // 检查是否有至少两行
         if (lines.Length > 1) {
-          modelName =  lines[1]; // 返回第二行
+          modelName = lines[1]; // 返回第二行
         }
 
         // 定义正则表达式以匹配第一个以数字开头的部分
@@ -785,7 +784,7 @@ namespace OmenSuperHub {
 
     // 设置显卡频率限制
     static bool SetGPUClockLimit(int freq) {
-      if(freq < 210) {
+      if (freq < 210) {
         ExecuteCommand("nvidia-smi --reset-gpu-clocks");
         return false;
       } else {
@@ -1090,7 +1089,7 @@ namespace OmenSuperHub {
       return null;
     }
 
-    // 状态栏定时更新任务+硬件查询
+    // 状态栏定时更新任务+硬件查询+DB解锁
     static void UpdateTooltip() {
       QueryHarware();
       if (monitorFan)
@@ -1111,33 +1110,46 @@ namespace OmenSuperHub {
           string command = $"pnputil /disable-device {deviceId}";
           ExecuteCommand(command);
 
-          // 恢复模式设定
-          if (fanMode.Contains("performance")) {
-            SetFanMode(0x31);
-          } else if (fanMode.Contains("default")) {
-            SetFanMode(0x30);
-          }
-
           if (CPUPower > CPULimitDB + 10) {
             if (powerOnline && GPUPowerLimits() >= 0) {
-              MessageBox.Show($"请在CPU低负载下解锁", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-              command = $"pnputil /enable-device {deviceId}";
-              ExecuteCommand(command);
-              DBVersion = 2;
-              countDB = 0;
-              SaveConfig("DBVersion");
-              UpdateCheckedState("DBGroup", "普通版本");
+              tryTimes++;
+              // 失败时重试一次
+              if (tryTimes == 2) {
+                tryTimes = 0;
+                MessageBox.Show($"请在CPU低负载下解锁", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                command = $"pnputil /enable-device {deviceId}";
+                ExecuteCommand(command);
+                DBVersion = 2;
+                countDB = 0;
+                SaveConfig("DBVersion");
+                UpdateCheckedState("DBGroup", "普通版本");
+              } else {
+                SetFanMode(0x31);
+                SetMaxGpuPower();
+                SetCpuPowerLimit((byte)CPULimitDB);
+                countDB = countDBInit;
+              }
             }
           } else {
             float powerLimits = GPUPowerLimits();
             if (powerOnline && powerLimits >= 0) {
-              MessageBox.Show($"功耗异常，解锁失败，请重新尝试！\n当前显卡功耗限制为：{powerLimits:F2} W ！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-              command = $"pnputil /enable-device {deviceId}";
-              ExecuteCommand(command);
-              DBVersion = 2;
-              countDB = 0;
-              SaveConfig("DBVersion");
-              UpdateCheckedState("DBGroup", "普通版本");
+              tryTimes++;
+              // 失败时重试一次
+              if (tryTimes == 2) {
+                tryTimes = 0;
+                MessageBox.Show($"功耗异常，解锁失败，请重新尝试！\n当前显卡功耗限制为：{powerLimits:F2} W ！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                command = $"pnputil /enable-device {deviceId}";
+                ExecuteCommand(command);
+                DBVersion = 2;
+                countDB = 0;
+                SaveConfig("DBVersion");
+                UpdateCheckedState("DBGroup", "普通版本");
+              } else {
+                SetFanMode(0x31);
+                SetMaxGpuPower();
+                SetCpuPowerLimit((byte)CPULimitDB);
+                countDB = countDBInit;
+              }
             } else {
               if (autoStart == "off") {
                 MessageBox.Show($"解锁成功！但当前未设置开机自启，解锁后若重启电脑会导致功耗异常，需要重新解锁！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -1145,10 +1157,19 @@ namespace OmenSuperHub {
               //MessageBox.Show($"解锁成功！\n当前最大显卡功耗锁定为：{-powerLimits:F2} W ！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
           }
+          if (tryTimes == 0) {
+            // 恢复模式设定
+            if (fanMode.Contains("performance")) {
+              SetFanMode(0x31);
+            } else if (fanMode.Contains("default")) {
+              SetFanMode(0x30);
+            }
 
-          // 恢复CPU功耗设定
-          RestoreCPUPower();
+            // 恢复CPU功耗设定
+            RestoreCPUPower();
+          }
         } else if (countDB == countDBInit - 1) {
+          // 启用DB驱动
           string deviceId = "\"ACPI\\NVDA0820\\NPCF\"";
           string command = $"pnputil /enable-device {deviceId}";
           ExecuteCommand(command);
@@ -1284,7 +1305,7 @@ namespace OmenSuperHub {
         libreComputer.IsGpuEnabled = false;
         UpdateCheckedState("monitorGPUGroup", "关闭GPU监控");
       }
-        
+
       //Console.WriteLine($"openCPU: {openTempCPU}℃, {openPowerCPU}W");
       //Console.WriteLine($"libreCPU: {libreTempCPU}℃, {librePowerCPU}W");
       //Console.WriteLine($"openGPU: {GPUTemp}℃, {GPUPower}W");
@@ -1437,7 +1458,7 @@ namespace OmenSuperHub {
         int gpuFanSpeed = GetFanSpeedForSpecificTemperature(GPUTemp, GPUTempFanMap, fanIndex);
         return Math.Max(cpuFanSpeed, gpuFanSpeed);
       }
-        
+
       return cpuFanSpeed;
     }
 
@@ -1810,7 +1831,7 @@ namespace OmenSuperHub {
             using (var reader = new StreamReader(pipeServer)) {
               string message = reader.ReadToEnd();
               if (message.Contains("OmenKeyTriggered")) {
-                if(!checkFloating)
+                if (!checkFloating)
                   checkFloating = true;
               }
             }
@@ -1857,7 +1878,7 @@ namespace OmenSuperHub {
       string str = $"CPU: {CPUTemp:F1}°C, {CPUPower:F1}W";
       if (monitorGPU)
         str += $"\nGPU: {GPUTemp:F1}°C, {GPUPower:F1}W";
-      if(monitorFan)
+      if (monitorFan)
         str += $"\nFan:  {fanSpeedNow[0] * 100}, {fanSpeedNow[1] * 100}";
       return str;
     }
