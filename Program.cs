@@ -794,6 +794,7 @@ namespace OmenSuperHub {
     }
 
     // 判断是否为最大显卡功耗并得到当前显卡功耗限制
+    // 若限制超过1W则输出当前显卡功耗限制，否则输出为负数
     static float GPUPowerLimits() {
       // state为“当前显卡功耗限制”或“显卡功耗限制已锁定”
       string output = ExecuteCommand("nvidia-smi -q -d POWER").Output;
@@ -1110,52 +1111,35 @@ namespace OmenSuperHub {
           string command = $"pnputil /disable-device {deviceId}";
           ExecuteCommand(command);
 
-          if (CPUPower > CPULimitDB + 10) {
-            if (powerOnline && GPUPowerLimits() >= 0) {
-              tryTimes++;
-              // 失败时重试一次
-              if (tryTimes == 2) {
-                tryTimes = 0;
+          float powerLimits = GPUPowerLimits();
+          // 检查显卡当前功耗限制，离电时当作解锁成功
+          if (powerOnline && powerLimits >= 0) {
+            tryTimes++;
+            // 失败时重试一次
+            if (tryTimes == 2) {
+              tryTimes = 0;
+              if (CPUPower > CPULimitDB + 10)
                 MessageBox.Show($"请在CPU低负载下解锁", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                command = $"pnputil /enable-device {deviceId}";
-                ExecuteCommand(command);
-                DBVersion = 2;
-                countDB = 0;
-                SaveConfig("DBVersion");
-                UpdateCheckedState("DBGroup", "普通版本");
-              } else {
-                SetFanMode(0x31);
-                SetMaxGpuPower();
-                SetCpuPowerLimit((byte)CPULimitDB);
-                countDB = countDBInit;
-              }
+              else
+                MessageBox.Show($"功耗异常，解锁失败，请重新尝试！\n当前显卡功耗限制为：{powerLimits:F2} W ！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+              command = $"pnputil /enable-device {deviceId}";
+              ExecuteCommand(command);
+              DBVersion = 2;
+              countDB = 0;
+              SaveConfig("DBVersion");
+              UpdateCheckedState("DBGroup", "普通版本");
+            } else {
+              SetFanMode(0x31);
+              SetMaxGpuPower();
+              SetCpuPowerLimit((byte)CPULimitDB);
+              countDB = countDBInit;
             }
           } else {
-            float powerLimits = GPUPowerLimits();
-            if (powerOnline && powerLimits >= 0) {
-              tryTimes++;
-              // 失败时重试一次
-              if (tryTimes == 2) {
-                tryTimes = 0;
-                MessageBox.Show($"功耗异常，解锁失败，请重新尝试！\n当前显卡功耗限制为：{powerLimits:F2} W ！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                command = $"pnputil /enable-device {deviceId}";
-                ExecuteCommand(command);
-                DBVersion = 2;
-                countDB = 0;
-                SaveConfig("DBVersion");
-                UpdateCheckedState("DBGroup", "普通版本");
-              } else {
-                SetFanMode(0x31);
-                SetMaxGpuPower();
-                SetCpuPowerLimit((byte)CPULimitDB);
-                countDB = countDBInit;
-              }
-            } else {
-              if (autoStart == "off") {
-                MessageBox.Show($"解锁成功！但当前未设置开机自启，解锁后若重启电脑会导致功耗异常，需要重新解锁！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-              }
-              //MessageBox.Show($"解锁成功！\n当前最大显卡功耗锁定为：{-powerLimits:F2} W ！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            tryTimes = 0;
+            if (autoStart == "off") {
+              MessageBox.Show($"解锁成功！但当前未设置开机自启，解锁后若重启电脑会导致功耗异常，需要重新解锁！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+            //MessageBox.Show($"解锁成功！\n当前最大显卡功耗锁定为：{-powerLimits:F2} W ！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
           }
           if (tryTimes == 0) {
             // 恢复模式设定
