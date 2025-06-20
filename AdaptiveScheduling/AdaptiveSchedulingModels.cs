@@ -66,6 +66,14 @@ namespace OmenSuperHub.AdaptiveScheduling
         }
 
         /// <summary>
+        /// 只初始化默认场景配置（不初始化应用规则）
+        /// </summary>
+        public void InitializeDefaultScenariosOnly()
+        {
+            InitializeDefaultScenarios();
+        }
+
+        /// <summary>
         /// 初始化默认场景配置
         /// </summary>
         private void InitializeDefaultScenarios()

@@ -33,6 +33,19 @@ namespace OmenSuperHub.AdaptiveScheduling
                 {
                     string json = File.ReadAllText(_configFilePath);
                     _config = JsonConvert.DeserializeObject<ScenarioConfig>(json);
+                    
+                    // 如果反序列化后AppRules为null，初始化为空列表（不添加默认规则）
+                    if (_config.AppRules == null)
+                    {
+                        _config.AppRules = new List<AppRule>();
+                    }
+                    
+                    // 如果反序列化后Scenarios为null，初始化默认场景
+                    if (_config.Scenarios == null || _config.Scenarios.Count == 0)
+                    {
+                        _config.Scenarios = new Dictionary<AppScenario, PerformanceConfig>();
+                        _config.InitializeDefaultScenariosOnly();
+                    }
                 }
                 else
                 {
