@@ -676,34 +676,34 @@ namespace OmenSuperHub {
       ToolStripMenuItem adaptiveSchedulingMenu = new ToolStripMenuItem("自适应调度");
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("启用自动调度", "adaptiveEnabledGroup", (s, e) => {
         adaptiveScheduler.Enable();
-        SaveConfig();
+        SaveAdaptiveConfig();
       }, false));
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("禁用自动调度", "adaptiveEnabledGroup", (s, e) => {
         adaptiveScheduler.Disable();
-        SaveConfig();
+        SaveAdaptiveConfig();
       }, true));
       adaptiveSchedulingMenu.DropDownItems.Add(new ToolStripSeparator());
       
       // 手动场景切换
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("游戏模式", "adaptiveScenarioGroup", (s, e) => {
         adaptiveScheduler.SetScenario(AppScenario.Gaming);
-        SaveConfig();
+        SaveAdaptiveConfig();
       }, false));
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("创作模式", "adaptiveScenarioGroup", (s, e) => {
         adaptiveScheduler.SetScenario(AppScenario.Content);
-        SaveConfig();
+        SaveAdaptiveConfig();
       }, false));
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("办公模式", "adaptiveScenarioGroup", (s, e) => {
         adaptiveScheduler.SetScenario(AppScenario.Office);
-        SaveConfig();
+        SaveAdaptiveConfig();
       }, true));
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("娱乐模式", "adaptiveScenarioGroup", (s, e) => {
         adaptiveScheduler.SetScenario(AppScenario.Media);
-        SaveConfig();
+        SaveAdaptiveConfig();
       }, false));
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("节能模式", "adaptiveScenarioGroup", (s, e) => {
         adaptiveScheduler.SetScenario(AppScenario.Idle);
-        SaveConfig();
+        SaveAdaptiveConfig();
       }, false));
       adaptiveSchedulingMenu.DropDownItems.Add(new ToolStripSeparator());
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("配置管理", null, (s, e) => {
@@ -2182,6 +2182,20 @@ namespace OmenSuperHub {
         }
       } catch (Exception ex) {
         MessageBox.Show($"打开配置窗口失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+      }
+    }
+
+    // 保存自适应调度配置
+    static void SaveAdaptiveConfig() {
+      try {
+        if (adaptiveScheduler != null) {
+          // 保存自适应调度的配置
+          adaptiveScheduler.GetConfigManager().SaveConfig();
+          // 同时保存主程序的配置以保持一致性
+          SaveConfig();
+        }
+      } catch (Exception ex) {
+        Console.WriteLine($"保存自适应配置失败: {ex.Message}");
       }
     }
 
