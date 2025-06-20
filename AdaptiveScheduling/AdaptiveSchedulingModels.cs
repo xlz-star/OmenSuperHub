@@ -63,7 +63,7 @@ namespace OmenSuperHub.AdaptiveScheduling
         public ScenarioConfig()
         {
             InitializeDefaultScenarios();
-            InitializeDefaultAppRules();
+            // 不再自动初始化默认应用规则，让用户手动选择
         }
 
         /// <summary>
@@ -167,7 +167,7 @@ namespace OmenSuperHub.AdaptiveScheduling
         /// <summary>
         /// 初始化默认应用规则
         /// </summary>
-        private void InitializeDefaultAppRules()
+        public void InitializeDefaultAppRules()
         {
             // 游戏应用
             var gamingApps = new[]

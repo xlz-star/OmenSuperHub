@@ -213,6 +213,8 @@ namespace OmenSuperHub.AdaptiveScheduling
         public void ResetToDefault()
         {
             _config = new ScenarioConfig();
+            // 重置时添加默认应用规则
+            _config.InitializeDefaultAppRules();
             SaveConfig();
         }
     }

@@ -72,7 +72,7 @@ namespace OmenSuperHub.Tests
                 Assert(config.Scenarios.ContainsKey(AppScenario.Gaming), "应该包含Gaming场景");
                 Assert(config.Scenarios.ContainsKey(AppScenario.Office), "应该包含Office场景");
                 Assert(config.AppRules != null, "应该初始化AppRules列表");
-                Assert(config.AppRules.Count > 0, "应该有默认的应用规则");
+                Assert(config.AppRules.Count == 0, "初始化时AppRules应该为空，不自动添加默认规则");
             }
             catch (Exception ex)
             {
