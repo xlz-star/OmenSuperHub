@@ -517,6 +517,8 @@ namespace OmenSuperHub
         {
             try
             {
+                Logger.Info($"[AdaptiveConfigForm] 开始保存配置，当前AppRules数量: {_configManager.Config.AppRules.Count}");
+                
                 // 保存基础设置
                 _configManager.SetAutoSchedulingEnabled(_enableAutoScheduling.Checked);
                 
@@ -533,9 +535,12 @@ namespace OmenSuperHub
                 // 保存场景配置
                 SaveScenarioConfig();
 
+                Logger.Info($"[AdaptiveConfigForm] 准备保存到文件，最终AppRules数量: {_configManager.Config.AppRules.Count}");
+                
                 // 保存到文件
                 _configManager.SaveConfig();
 
+                Logger.Info($"[AdaptiveConfigForm] 配置保存完成");
                 MessageBox.Show("配置已保存成功！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 // 保存后不关闭窗口，让用户继续编辑
             }

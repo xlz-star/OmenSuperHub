@@ -2184,6 +2184,24 @@ namespace OmenSuperHub {
       }
     }
 
+    // 显示调试日志文件路径
+    static void ShowDebugLogPath() {
+      try {
+        string logPath = AdaptiveScheduling.Logger.GetLogFilePath();
+        string message = $"自适应调度调试日志文件位置:\n{logPath}\n\n点击确定打开日志文件所在文件夹";
+        
+        if (MessageBox.Show(message, "调试日志", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) == DialogResult.OK) {
+          // 打开日志文件所在的文件夹
+          string directory = Path.GetDirectoryName(logPath);
+          if (Directory.Exists(directory)) {
+            Process.Start("explorer.exe", directory);
+          }
+        }
+      } catch (Exception ex) {
+        MessageBox.Show($"无法打开日志文件: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+      }
+    }
+
     // 保存自适应调度配置
     static void SaveAdaptiveConfig() {
       try {

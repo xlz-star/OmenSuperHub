@@ -45,10 +45,16 @@ namespace OmenSuperHub.AdaptiveScheduling
         /// </summary>
         public void UpdateAppRules(List<AppRule> appRules)
         {
+            Logger.Debug($"[ProcessMonitor] 开始更新AppRules，原数量: {_appRules.Count}");
             _appRules.Clear();
             if (appRules != null)
             {
                 _appRules.AddRange(appRules);
+                Logger.Info($"[ProcessMonitor] AppRules更新完成，新数量: {_appRules.Count}");
+            }
+            else
+            {
+                Logger.Debug($"[ProcessMonitor] 新AppRules为null，保持空列表");
             }
         }
 
