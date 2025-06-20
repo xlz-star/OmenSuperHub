@@ -237,10 +237,7 @@ namespace OmenSuperHub
                 Width = 100,
                 MinimumWidth = 80
             };
-            scenarioColumn.Items.AddRange(new object[]
-            {
-                "办公模式", "游戏模式", "创作模式", "娱乐模式", "节能模式", "自定义模式"
-            });
+            // 场景选项将在LoadData中动态设置
             _appRulesGrid.Columns.Add(scenarioColumn);
 
             _appRulesGrid.Columns.Add(new DataGridViewTextBoxColumn
@@ -464,6 +461,9 @@ namespace OmenSuperHub
             // 设置默认监控模式（初始时选择定时器模式）
             _monitorModeCombo.SelectedIndex = 0;
 
+            // 更新应用规则的场景选项
+            UpdateAppRuleScenarioOptions();
+
             // 加载应用规则
             LoadAppRules();
 
@@ -502,6 +502,27 @@ namespace OmenSuperHub
                     scenario.Key == _configManager.Config.DefaultScenario,
                     scenario.Value.Description
                 );
+            }
+        }
+
+        /// <summary>
+        /// 更新应用规则网格中的场景选项
+        /// </summary>
+        private void UpdateAppRuleScenarioOptions()
+        {
+            if (_appRulesGrid.Columns["Scenario"] is DataGridViewComboBoxColumn scenarioColumn)
+            {
+                // 清空现有选项
+                scenarioColumn.Items.Clear();
+                
+                // 添加当前可用的场景
+                foreach (var scenario in _configManager.Config.Scenarios.Keys)
+                {
+                    string displayName = AdaptiveScheduler.GetScenarioDisplayName(scenario);
+                    scenarioColumn.Items.Add(displayName);
+                }
+                
+                Logger.Info($"[AdaptiveConfigForm] 已更新应用规则场景选项，数量: {scenarioColumn.Items.Count}");
             }
         }
 
@@ -669,6 +690,10 @@ namespace OmenSuperHub
 
                 // 添加到配置中（使用Custom类型）
                 _configManager.Config.Scenarios[AppScenario.Custom] = newConfig;
+                
+                // 更新应用规则的场景选项
+                UpdateAppRuleScenarioOptions();
+                
                 LoadScenarioConfig();
                 MessageBox.Show($"已添加场景: {scenarioName}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -716,6 +741,9 @@ namespace OmenSuperHub
 
                         // 删除场景配置
                         _configManager.Config.Scenarios.Remove(scenarioToRemove.Key);
+                        
+                        // 更新应用规则的场景选项
+                        UpdateAppRuleScenarioOptions();
                         
                         // 刷新界面
                         LoadScenarioConfig();
