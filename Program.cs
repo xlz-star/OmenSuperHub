@@ -2034,6 +2034,9 @@ namespace OmenSuperHub {
             ExecuteCommand(command);
           }
         }
+
+        // 更新菜单状态以反映新的配置
+        UpdateAllMenuStates();
       } catch (Exception ex) {
         Console.WriteLine($"应用自适应配置失败: {ex.Message}");
       }
@@ -2053,6 +2056,82 @@ namespace OmenSuperHub {
         trayIcon.ShowBalloonTip(3000);
       } catch (Exception ex) {
         Console.WriteLine($"场景变化事件处理失败: {ex.Message}");
+      }
+    }
+
+    // 更新所有菜单状态以反映当前配置
+    static void UpdateAllMenuStates() {
+      try {
+        // 更新风扇表格菜单
+        if (fanTable == "cool") {
+          UpdateCheckedState("fanTableGroup", "降温模式");
+        } else {
+          UpdateCheckedState("fanTableGroup", "安静模式");
+        }
+
+        // 更新风扇模式菜单
+        if (fanMode == "performance") {
+          UpdateCheckedState("fanModeGroup", "狂暴模式");
+        } else {
+          UpdateCheckedState("fanModeGroup", "平衡模式");
+        }
+
+        // 更新风扇控制菜单
+        if (fanControl == "auto") {
+          UpdateCheckedState("fanControlGroup", "自动");
+        } else if (fanControl == "max") {
+          UpdateCheckedState("fanControlGroup", "最大风扇");
+        } else if (fanControl.Contains(" RPM")) {
+          UpdateCheckedState("fanControlGroup", fanControl);
+        }
+
+        // 更新温度敏感度菜单
+        switch (tempSensitivity) {
+          case "realtime":
+            UpdateCheckedState("tempSensitivityGroup", "实时");
+            break;
+          case "high":
+            UpdateCheckedState("tempSensitivityGroup", "高");
+            break;
+          case "medium":
+            UpdateCheckedState("tempSensitivityGroup", "中");
+            break;
+          case "low":
+            UpdateCheckedState("tempSensitivityGroup", "低");
+            break;
+        }
+
+        // 更新CPU功率菜单
+        if (cpuPower == "max") {
+          UpdateCheckedState("cpuPowerGroup", "最大");
+        } else if (cpuPower.Contains(" W")) {
+          UpdateCheckedState("cpuPowerGroup", cpuPower);
+        }
+
+        // 更新GPU功率菜单
+        switch (gpuPower) {
+          case "max":
+            UpdateCheckedState("gpuPowerGroup", "CTGP开+DB开");
+            break;
+          case "med":
+            UpdateCheckedState("gpuPowerGroup", "CTGP开+DB关");
+            break;
+          case "min":
+            UpdateCheckedState("gpuPowerGroup", "CTGP关+DB关");
+            break;
+        }
+
+        // 更新GPU频率菜单
+        if (gpuClock > 0) {
+          UpdateCheckedState("gpuClockGroup", gpuClock + " MHz");
+        } else {
+          UpdateCheckedState("gpuClockGroup", "还原");
+        }
+
+        // 更新自适应调度菜单状态
+        UpdateAdaptiveMenuState();
+      } catch (Exception ex) {
+        Console.WriteLine($"更新菜单状态失败: {ex.Message}");
       }
     }
 
