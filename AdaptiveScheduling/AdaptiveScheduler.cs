@@ -24,14 +24,14 @@ namespace OmenSuperHub.AdaptiveScheduling
         private bool _isEnabled = false;
         private AppScenario _currentScenario = AppScenario.Office;
         private bool _isManualOverride = false;
-        private MonitorType _currentMonitorType = MonitorType.Timer;
+        private MonitorType _currentMonitorType = MonitorType.EventDriven;
 
         public event Action<AppScenario, string> ScenarioChanged;
 
         public bool IsEnabled => _isEnabled;
         public AppScenario CurrentScenario => _currentScenario;
 
-        public AdaptiveScheduler(MonitorType monitorType = MonitorType.Timer)
+        public AdaptiveScheduler(MonitorType monitorType = MonitorType.EventDriven)
         {
             Logger.ClearLog(); // 每次启动时清空日志
             Logger.Info($"[AdaptiveScheduler] 开始初始化自适应调度器，监控模式: {monitorType}");

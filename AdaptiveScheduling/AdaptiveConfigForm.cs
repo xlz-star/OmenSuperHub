@@ -117,7 +117,7 @@ namespace OmenSuperHub
             {
                 Location = new Point(150, yPos),
                 Size = new Size(80, 25),
-                Minimum = 5,
+                Minimum = 1,
                 Maximum = 300,
                 Value = 30
             };
@@ -143,7 +143,8 @@ namespace OmenSuperHub
             {
                 "定时器模式", "事件驱动模式"
             });
-            _monitorModeCombo.SelectedIndex = 0; // 默认选择定时器模式
+            _monitorModeCombo.SelectedIndex = 1; // 默认选择事件驱动模式
+            _monitorModeCombo.SelectedIndexChanged += MonitorModeCombo_SelectedIndexChanged;
             panel.Controls.Add(_monitorModeCombo);
             yPos += 40;
 
@@ -458,8 +459,18 @@ namespace OmenSuperHub
             
             _scanIntervalNumeric.Value = _configManager.Config.ScanInterval;
             
-            // 设置默认监控模式（初始时选择定时器模式）
-            _monitorModeCombo.SelectedIndex = 0;
+            // 设置监控模式（从配置加载）
+            if (_configManager.Config.MonitorMode == "Timer")
+            {
+                _monitorModeCombo.SelectedIndex = 0;
+            }
+            else
+            {
+                _monitorModeCombo.SelectedIndex = 1; // 默认事件驱动模式
+            }
+            
+            // 更新扫描间隔显示状态
+            UpdateScanIntervalVisibility();
 
             // 更新应用规则的场景选项
             UpdateAppRuleScenarioOptions();
@@ -576,7 +587,12 @@ namespace OmenSuperHub
                 AppScenario selectedScenario = AdaptiveScheduler.GetScenarioFromDisplayName(selectedScenarioName);
                 _configManager.SetCurrentScenario(selectedScenario);
                 
+                // 保存扫描间隔
                 _configManager.Config.ScanInterval = (int)_scanIntervalNumeric.Value;
+                
+                // 保存监控模式
+                _configManager.Config.MonitorMode = _monitorModeCombo.SelectedIndex == 0 ? "Timer" : "EventDriven";
+                Logger.Info($"[AdaptiveConfigForm] 保存监控模式: {_configManager.Config.MonitorMode}");
 
                 // 保存应用规则
                 SaveAppRules();
@@ -847,6 +863,48 @@ namespace OmenSuperHub
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 监控模式切换事件处理
+        /// </summary>
+        private void MonitorModeCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateScanIntervalVisibility();
+        }
+
+        /// <summary>
+        /// 更新扫描间隔显示状态
+        /// </summary>
+        private void UpdateScanIntervalVisibility()
+        {
+            // 事件驱动模式隐藏扫描间隔，定时器模式显示扫描间隔
+            bool isTimerMode = _monitorModeCombo.SelectedIndex == 0;
+            
+            // 查找扫描间隔相关控件
+            foreach (Control control in this.Controls)
+            {
+                if (control is TabControl tabControl)
+                {
+                    var basicTab = tabControl.TabPages[0];
+                    foreach (Control tabControl1 in basicTab.Controls)
+                    {
+                        if (tabControl1 is Panel panel)
+                        {
+                            foreach (Control panelControl in panel.Controls)
+                            {
+                                if (panelControl == _scanIntervalNumeric || 
+                                    (panelControl is Label label && label.Text.Contains("扫描间隔")))
+                                {
+                                    panelControl.Visible = isTimerMode;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Logger.Info($"[AdaptiveConfigForm] 扫描间隔控件可见性: {isTimerMode} (模式: {_monitorModeCombo.SelectedItem})");
         }
     }
 }
