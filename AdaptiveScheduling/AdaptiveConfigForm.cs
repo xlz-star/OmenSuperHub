@@ -23,6 +23,7 @@ namespace OmenSuperHub
         private Button _closeButton;
         private Button _addRuleButton;
         private Button _deleteRuleButton;
+        private Button _clearRulesButton;
         private Button _addScenarioButton;
         private Button _deleteScenarioButton;
 
@@ -162,6 +163,16 @@ namespace OmenSuperHub
             };
             _deleteRuleButton.Click += DeleteRuleButton_Click;
             panel.Controls.Add(_deleteRuleButton);
+
+            _clearRulesButton = new Button
+            {
+                Text = "清空规则",
+                Location = new Point(190, 10),
+                Size = new Size(80, 30),
+                ForeColor = Color.Red
+            };
+            _clearRulesButton.Click += ClearRulesButton_Click;
+            panel.Controls.Add(_clearRulesButton);
 
             // 数据表格
             _appRulesGrid = new DataGridView
@@ -643,6 +654,31 @@ namespace OmenSuperHub
             else
             {
                 MessageBox.Show("请选择要删除的场景。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void ClearRulesButton_Click(object sender, EventArgs e)
+        {
+            if (_configManager.Config.AppRules.Count == 0)
+            {
+                MessageBox.Show("应用规则列表已经是空的。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var result = MessageBox.Show(
+                $"确定要清空所有应用规则吗？\n\n当前共有 {_configManager.Config.AppRules.Count} 条规则，此操作不可撤销。", 
+                "确认清空", 
+                MessageBoxButtons.YesNo, 
+                MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes)
+            {
+                int ruleCount = _configManager.Config.AppRules.Count;
+                _configManager.Config.AppRules.Clear();
+                LoadAppRules();
+                
+                MessageBox.Show($"已清空 {ruleCount} 条应用规则。", "清空完成", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
