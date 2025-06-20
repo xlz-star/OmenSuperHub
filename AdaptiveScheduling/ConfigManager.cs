@@ -76,10 +76,10 @@ namespace OmenSuperHub.AdaptiveScheduling
             {
                 using (RegistryKey key = Registry.CurrentUser.OpenSubKey(_registryPath))
                 {
-                    if (key \!= null)
+                    if (key != null)
                     {
                         _config.IsAutoSchedulingEnabled = Convert.ToBoolean(key.GetValue("IsAutoSchedulingEnabled", false));
-                        _config.CurrentScenario = (AppScenario)Enum.Parse(typeof(AppScenario), 
+                        _config.CurrentScenario = (AppScenario)Enum.Parse(typeof(AppScenario),
                             key.GetValue("CurrentScenario", AppScenario.Office.ToString()).ToString());
                         _config.ScanInterval = Convert.ToInt32(key.GetValue("ScanInterval", 30));
                         _config.CpuThreshold = Convert.ToSingle(key.GetValue("CpuThreshold", 80.0f));
@@ -102,7 +102,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             {
                 using (RegistryKey key = Registry.CurrentUser.CreateSubKey(_registryPath))
                 {
-                    if (key \!= null)
+                    if (key != null)
                     {
                         key.SetValue("IsAutoSchedulingEnabled", _config.IsAutoSchedulingEnabled);
                         key.SetValue("CurrentScenario", _config.CurrentScenario.ToString());
@@ -123,8 +123,8 @@ namespace OmenSuperHub.AdaptiveScheduling
         /// </summary>
         public PerformanceConfig GetScenarioConfig(AppScenario scenario)
         {
-            return _config.Scenarios.ContainsKey(scenario) 
-                ? _config.Scenarios[scenario] 
+            return _config.Scenarios.ContainsKey(scenario)
+                ? _config.Scenarios[scenario]
                 : _config.Scenarios[AppScenario.Office];
         }
 

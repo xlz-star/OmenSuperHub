@@ -69,7 +69,7 @@ namespace OmenSuperHub.AdaptiveScheduling
                 var activeProcess = GetActiveProcessName();
 
                 // 如果场景发生变化，触发事件
-                if (detectedScenario \!= _lastDetectedScenario || activeProcess \!= _lastActiveProcess)
+                if (detectedScenario != _lastDetectedScenario || activeProcess != _lastActiveProcess)
                 {
                     _lastDetectedScenario = detectedScenario;
                     _lastActiveProcess = activeProcess;
@@ -91,10 +91,10 @@ namespace OmenSuperHub.AdaptiveScheduling
             var activeProcess = GetActiveProcessInfo();
 
             // 首先检查前台应用
-            if (activeProcess \!= null)
+            if (activeProcess != null)
             {
                 var activeRule = MatchProcessToRule(activeProcess.ProcessName, activeProcess.WindowTitle);
-                if (activeRule \!= null && activeRule.IsEnabled)
+                if (activeRule != null && activeRule.IsEnabled)
                 {
                     return activeRule.Scenario;
                 }
@@ -102,11 +102,11 @@ namespace OmenSuperHub.AdaptiveScheduling
 
             // 检查所有运行的进程，按优先级排序
             var matchedRules = new List<(AppRule rule, string processName)>();
-            
+
             foreach (var process in runningProcesses)
             {
                 var rule = MatchProcessToRule(process.ProcessName, "");
-                if (rule \!= null && rule.IsEnabled)
+                if (rule != null && rule.IsEnabled)
                 {
                     matchedRules.Add((rule, process.ProcessName));
                 }
@@ -117,7 +117,7 @@ namespace OmenSuperHub.AdaptiveScheduling
                 .OrderByDescending(x => x.rule.Priority)
                 .FirstOrDefault();
 
-            if (highestPriorityRule.rule \!= null)
+            if (highestPriorityRule.rule != null)
             {
                 return highestPriorityRule.rule.Scenario;
             }
@@ -132,14 +132,14 @@ namespace OmenSuperHub.AdaptiveScheduling
         private List<ProcessInfo> GetRunningProcesses()
         {
             var processes = new List<ProcessInfo>();
-            
+
             try
             {
                 foreach (var process in Process.GetProcesses())
                 {
                     try
                     {
-                        if (\!process.HasExited && \!string.IsNullOrEmpty(process.ProcessName))
+                        if (!process.HasExited && !string.IsNullOrEmpty(process.ProcessName))
                         {
                             processes.Add(new ProcessInfo
                             {
@@ -213,22 +213,22 @@ namespace OmenSuperHub.AdaptiveScheduling
             if (string.IsNullOrEmpty(processName)) return null;
 
             // 精确匹配进程名
-            var exactMatch = _appRules.FirstOrDefault(rule => 
-                rule.IsEnabled && 
-                \!string.IsNullOrEmpty(rule.ProcessName) && 
+            var exactMatch = _appRules.FirstOrDefault(rule =>
+                rule.IsEnabled &&
+                !string.IsNullOrEmpty(rule.ProcessName) &&
                 processName.Contains(rule.ProcessName.ToLower()));
 
-            if (exactMatch \!= null) return exactMatch;
+            if (exactMatch != null) return exactMatch;
 
             // 窗口标题匹配
-            if (\!string.IsNullOrEmpty(windowTitle))
+            if (!string.IsNullOrEmpty(windowTitle))
             {
                 var titleMatch = _appRules.FirstOrDefault(rule =>
                     rule.IsEnabled &&
-                    \!string.IsNullOrEmpty(rule.WindowTitle) &&
+                    !string.IsNullOrEmpty(rule.WindowTitle) &&
                     windowTitle.ToLower().Contains(rule.WindowTitle.ToLower()));
 
-                if (titleMatch \!= null) return titleMatch;
+                if (titleMatch != null) return titleMatch;
             }
 
             return null;

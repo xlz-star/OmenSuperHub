@@ -27,7 +27,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             _performanceController = new PerformanceController();
 
             _processMonitor.ScenarioDetected += OnScenarioDetected;
-            
+
             // 加载保存的状态
             _isEnabled = _configManager.Config.IsAutoSchedulingEnabled;
             _currentScenario = _configManager.Config.CurrentScenario;
@@ -54,7 +54,7 @@ namespace OmenSuperHub.AdaptiveScheduling
         /// </summary>
         public void Disable()
         {
-            if (\!_isEnabled) return;
+            if (!_isEnabled) return;
 
             _isEnabled = false;
             _configManager.SetAutoSchedulingEnabled(false);
@@ -84,10 +84,10 @@ namespace OmenSuperHub.AdaptiveScheduling
         public void ReloadConfig()
         {
             _configManager.LoadConfig();
-            
+
             // 更新进程监控器的应用规则
             _processMonitor.StopMonitoring();
-            
+
             if (_isEnabled)
             {
                 _processMonitor.StartMonitoring();
@@ -103,7 +103,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             if (_isManualOverride) return;
 
             // 如果没有启用自动调度，则忽略
-            if (\!_isEnabled) return;
+            if (!_isEnabled) return;
 
             ApplyScenario(scenario, processName);
         }
@@ -154,7 +154,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             return scenario switch
             {
                 AppScenario.Gaming => "游戏模式",
-                AppScenario.Content => "创作模式", 
+                AppScenario.Content => "创作模式",
                 AppScenario.Office => "办公模式",
                 AppScenario.Media => "娱乐模式",
                 AppScenario.Idle => "节能模式",
@@ -188,7 +188,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             try
             {
                 // 如果设置了委托，则使用委托调用
-                if (ApplyConfigDelegate \!= null)
+                if (ApplyConfigDelegate != null)
                 {
                     ApplyConfigDelegate(config);
                 }
