@@ -15,7 +15,7 @@ namespace OmenSuperHub.AdaptiveScheduling
     /// <summary>
     /// 自适应调度引擎
     /// </summary>
-    public class AdaptiveScheduler
+    public class AdaptiveScheduler : IDisposable
     {
         private readonly ConfigManager _configManager;
         private readonly ProcessMonitor _processMonitor;
