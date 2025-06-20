@@ -129,6 +129,7 @@ namespace OmenSuperHub
                        "• 手动设置场景会临时禁用自动调度，重新启用后会恢复自动检测",
                 Location = new Point(20, yPos),
                 Size = new Size(500, 80),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 ForeColor = Color.DarkBlue
             };
             panel.Controls.Add(helpLabel);
@@ -166,6 +167,7 @@ namespace OmenSuperHub
             {
                 Location = new Point(10, 50),
                 Size = new Size(750, 400),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -177,21 +179,26 @@ namespace OmenSuperHub
             {
                 Name = "ProcessName",
                 HeaderText = "进程名称",
-                Width = 150
+                Width = 120,
+                MinimumWidth = 100
             });
 
             _appRulesGrid.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "WindowTitle",
                 HeaderText = "窗口标题",
-                Width = 150
+                Width = 180,
+                MinimumWidth = 150,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                FillWeight = 40
             });
 
             var scenarioColumn = new DataGridViewComboBoxColumn
             {
                 Name = "Scenario",
                 HeaderText = "场景",
-                Width = 100
+                Width = 100,
+                MinimumWidth = 80
             };
             scenarioColumn.Items.AddRange(new object[]
             {
@@ -203,21 +210,26 @@ namespace OmenSuperHub
             {
                 Name = "Priority",
                 HeaderText = "优先级",
-                Width = 80
+                Width = 70,
+                MinimumWidth = 60
             });
 
             _appRulesGrid.Columns.Add(new DataGridViewCheckBoxColumn
             {
                 Name = "IsEnabled",
                 HeaderText = "启用",
-                Width = 60
+                Width = 60,
+                MinimumWidth = 50
             });
 
             _appRulesGrid.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Description",
                 HeaderText = "描述",
-                Width = 200
+                Width = 200,
+                MinimumWidth = 150,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                FillWeight = 60
             });
 
             panel.Controls.Add(_appRulesGrid);
@@ -254,6 +266,7 @@ namespace OmenSuperHub
             {
                 Location = new Point(10, 50),
                 Size = new Size(750, 410),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -265,7 +278,8 @@ namespace OmenSuperHub
             {
                 Name = "Scenario",
                 HeaderText = "场景",
-                Width = 100,
+                Width = 90,
+                MinimumWidth = 80,
                 ReadOnly = true
             });
 
@@ -273,7 +287,8 @@ namespace OmenSuperHub
             {
                 Name = "FanTable",
                 HeaderText = "风扇配置",
-                Width = 80
+                Width = 80,
+                MinimumWidth = 70
             };
             fanTableColumn.Items.AddRange(new object[] { "silent", "cool" });
             _scenarioConfigGrid.Columns.Add(fanTableColumn);
@@ -282,7 +297,8 @@ namespace OmenSuperHub
             {
                 Name = "FanMode",
                 HeaderText = "性能模式",
-                Width = 80
+                Width = 80,
+                MinimumWidth = 70
             };
             fanModeColumn.Items.AddRange(new object[] { "performance", "default" });
             _scenarioConfigGrid.Columns.Add(fanModeColumn);
@@ -291,7 +307,8 @@ namespace OmenSuperHub
             {
                 Name = "FanControl",
                 HeaderText = "风扇控制",
-                Width = 100
+                Width = 100,
+                MinimumWidth = 90
             };
             fanControlColumn.Items.AddRange(new object[] 
             { 
@@ -305,7 +322,8 @@ namespace OmenSuperHub
             {
                 Name = "CpuPower",
                 HeaderText = "CPU功率",
-                Width = 80
+                Width = 80,
+                MinimumWidth = 70
             };
             cpuPowerColumn.Items.AddRange(new object[] 
             { 
@@ -318,7 +336,8 @@ namespace OmenSuperHub
             {
                 Name = "GpuPower",
                 HeaderText = "GPU功率",
-                Width = 100
+                Width = 80,
+                MinimumWidth = 70
             };
             gpuPowerColumn.Items.AddRange(new object[] { "max", "med", "min" });
             _scenarioConfigGrid.Columns.Add(gpuPowerColumn);
@@ -327,7 +346,9 @@ namespace OmenSuperHub
             {
                 Name = "Description",
                 HeaderText = "描述",
-                Width = 200
+                Width = 200,
+                MinimumWidth = 150,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
             });
 
             panel.Controls.Add(_scenarioConfigGrid);
