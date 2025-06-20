@@ -22,7 +22,11 @@ namespace OmenSuperHub.AdaptiveScheduling
 
         public AdaptiveScheduler()
         {
+            Logger.ClearLog(); // 每次启动时清空日志
+            Logger.Info($"[AdaptiveScheduler] 开始初始化自适应调度器");
             _configManager = new ConfigManager();
+            Logger.Info($"[AdaptiveScheduler] ConfigManager创建完成，AppRules数量: {_configManager.Config.AppRules.Count}");
+            
             _processMonitor = new ProcessMonitor(_configManager.Config.AppRules, _configManager.Config.ScanInterval);
             _performanceController = new PerformanceController();
 
@@ -31,6 +35,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             // 加载保存的状态
             _isEnabled = _configManager.Config.IsAutoSchedulingEnabled;
             _currentScenario = _configManager.Config.CurrentScenario;
+            Logger.Info($"[AdaptiveScheduler] 初始化完成，当前场景: {_currentScenario}, 自动调度: {_isEnabled}");
         }
 
         /// <summary>
@@ -83,14 +88,18 @@ namespace OmenSuperHub.AdaptiveScheduling
         /// </summary>
         public void ReloadConfig()
         {
+            Logger.Debug($"[AdaptiveScheduler] 开始重新加载配置");
             _configManager.LoadConfig();
 
             // 更新进程监控器的应用规则
             _processMonitor.StopMonitoring();
+            _processMonitor.UpdateAppRules(_configManager.Config.AppRules);
+            Logger.Info($"[AdaptiveScheduler] ProcessMonitor已更新AppRules，数量: {_configManager.Config.AppRules.Count}");
 
             if (_isEnabled)
             {
                 _processMonitor.StartMonitoring();
+                Logger.Debug($"[AdaptiveScheduler] 重新启动进程监控");
             }
         }
 
@@ -167,6 +176,30 @@ namespace OmenSuperHub.AdaptiveScheduling
                     return "自定义模式";
                 default:
                     return "未知模式";
+            }
+        }
+
+        /// <summary>
+        /// 从显示名称获取场景枚举
+        /// </summary>
+        public static AppScenario GetScenarioFromDisplayName(string displayName)
+        {
+            switch (displayName)
+            {
+                case "游戏模式":
+                    return AppScenario.Gaming;
+                case "创作模式":
+                    return AppScenario.Content;
+                case "办公模式":
+                    return AppScenario.Office;
+                case "娱乐模式":
+                    return AppScenario.Media;
+                case "节能模式":
+                    return AppScenario.Idle;
+                case "自定义模式":
+                    return AppScenario.Custom;
+                default:
+                    return AppScenario.Office;
             }
         }
 

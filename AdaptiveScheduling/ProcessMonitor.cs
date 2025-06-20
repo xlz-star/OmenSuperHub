@@ -41,6 +41,24 @@ namespace OmenSuperHub.AdaptiveScheduling
         }
 
         /// <summary>
+        /// 更新应用规则列表
+        /// </summary>
+        public void UpdateAppRules(List<AppRule> appRules)
+        {
+            Logger.Debug($"[ProcessMonitor] 开始更新AppRules，原数量: {_appRules.Count}");
+            _appRules.Clear();
+            if (appRules != null)
+            {
+                _appRules.AddRange(appRules);
+                Logger.Info($"[ProcessMonitor] AppRules更新完成，新数量: {_appRules.Count}");
+            }
+            else
+            {
+                Logger.Debug($"[ProcessMonitor] 新AppRules为null，保持空列表");
+            }
+        }
+
+        /// <summary>
         /// 开始监控
         /// </summary>
         public void StartMonitoring()
@@ -123,7 +141,14 @@ namespace OmenSuperHub.AdaptiveScheduling
             }
 
             // 基于资源占用判断
-            return DetectScenarioByResourceUsage();
+            var resourceBasedScenario = DetectScenarioByResourceUsage();
+            if (resourceBasedScenario != AppScenario.Office)
+            {
+                return resourceBasedScenario;
+            }
+
+            // 如果没有匹配的规则且资源占用正常，返回默认场景
+            return _configManager.Config.DefaultScenario;
         }
 
         /// <summary>

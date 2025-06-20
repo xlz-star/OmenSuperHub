@@ -30,15 +30,19 @@ namespace OmenSuperHub.AdaptiveScheduling
         {
             try
             {
+                Logger.Debug($"[ConfigManager] 开始加载配置，文件路径: {_configFilePath}");
                 if (File.Exists(_configFilePath))
                 {
+                    Logger.Debug($"[ConfigManager] 配置文件存在，正在读取...");
                     string json = File.ReadAllText(_configFilePath);
                     _config = JsonConvert.DeserializeObject<ScenarioConfig>(json);
-
+                    Logger.Info($"[ConfigManager] 配置加载成功，AppRules数量: {_config.AppRules?.Count ?? 0}");
+                    
                     // 如果反序列化后AppRules为null，初始化为空列表（不添加默认规则）
                     if (_config.AppRules == null)
                     {
                         _config.AppRules = new List<AppRule>();
+                        Logger.Debug($"[ConfigManager] AppRules为null，初始化为空列表");
                     }
 
                     // 如果反序列化后Scenarios为null，初始化默认场景
@@ -46,12 +50,15 @@ namespace OmenSuperHub.AdaptiveScheduling
                     {
                         _config.Scenarios = new Dictionary<AppScenario, PerformanceConfig>();
                         _config.InitializeDefaultScenariosOnly();
+                        Logger.Debug($"[ConfigManager] Scenarios为空，初始化默认场景");
                     }
                 }
                 else
                 {
+                    Logger.Info($"[ConfigManager] 配置文件不存在，创建新配置");
                     _config = new ScenarioConfig();
                     SaveConfig();
+                    Logger.Info($"[ConfigManager] 新配置已保存，AppRules数量: {_config.AppRules.Count}");
                 }
 
                 // 从注册表加载运行时设置
@@ -59,7 +66,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"配置加载失败: {ex.Message}");
+                Logger.Error($"配置加载失败: {ex.Message}");
                 _config = new ScenarioConfig();
             }
         }
@@ -71,13 +78,15 @@ namespace OmenSuperHub.AdaptiveScheduling
         {
             try
             {
+                Logger.Debug($"[ConfigManager] 开始保存配置，AppRules数量: {_config.AppRules.Count}");
                 string json = JsonConvert.SerializeObject(_config, Formatting.Indented);
                 File.WriteAllText(_configFilePath, json);
+                Logger.Info($"[ConfigManager] 配置已保存到: {_configFilePath}");
                 SaveRuntimeSettings();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"配置保存失败: {ex.Message}");
+                Logger.Error($"配置保存失败: {ex.Message}");
             }
         }
 
@@ -200,11 +209,22 @@ namespace OmenSuperHub.AdaptiveScheduling
         }
 
         /// <summary>
+        /// 设置默认场景
+        /// </summary>
+        public void SetDefaultScenario(AppScenario scenario)
+        {
+            _config.DefaultScenario = scenario;
+            SaveConfig();
+        }
+
+        /// <summary>
         /// 重置为默认配置
         /// </summary>
         public void ResetToDefault()
         {
             _config = new ScenarioConfig();
+            // 重置时添加默认应用规则
+            _config.InitializeDefaultAppRules();
             SaveConfig();
         }
     }

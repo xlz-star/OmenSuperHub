@@ -2174,14 +2174,31 @@ namespace OmenSuperHub {
       try {
         if (adaptiveScheduler != null) {
           var configForm = new AdaptiveConfigForm(adaptiveScheduler.GetConfigManager());
-          if (configForm.ShowDialog() == DialogResult.OK) {
-            // 重新加载配置
-            adaptiveScheduler.ReloadConfig();
-            UpdateAdaptiveMenuState();
-          }
+          configForm.ShowDialog();
+          // 无论用户是否点击确定，都重新加载配置（因为保存按钮不关闭窗口）
+          adaptiveScheduler.ReloadConfig();
+          UpdateAdaptiveMenuState();
         }
       } catch (Exception ex) {
         MessageBox.Show($"打开配置窗口失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+      }
+    }
+
+    // 显示调试日志文件路径
+    static void ShowDebugLogPath() {
+      try {
+        string logPath = AdaptiveScheduling.Logger.GetLogFilePath();
+        string message = $"自适应调度调试日志文件位置:\n{logPath}\n\n点击确定打开日志文件所在文件夹";
+        
+        if (MessageBox.Show(message, "调试日志", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) == DialogResult.OK) {
+          // 打开日志文件所在的文件夹
+          string directory = Path.GetDirectoryName(logPath);
+          if (Directory.Exists(directory)) {
+            Process.Start("explorer.exe", directory);
+          }
+        }
+      } catch (Exception ex) {
+        MessageBox.Show($"无法打开日志文件: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
       }
     }
 

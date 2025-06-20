@@ -354,6 +354,14 @@ namespace OmenSuperHub
             gpuPowerColumn.Items.AddRange(new object[] { "max", "med", "min" });
             _scenarioConfigGrid.Columns.Add(gpuPowerColumn);
 
+            _scenarioConfigGrid.Columns.Add(new DataGridViewCheckBoxColumn
+            {
+                Name = "IsDefault",
+                HeaderText = "默认场景",
+                Width = 80,
+                MinimumWidth = 70
+            });
+
             _scenarioConfigGrid.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Description",
@@ -362,6 +370,9 @@ namespace OmenSuperHub
                 MinimumWidth = 150,
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
             });
+
+            // 添加单元格值改变事件处理
+            _scenarioConfigGrid.CellValueChanged += ScenarioConfigGrid_CellValueChanged;
 
             panel.Controls.Add(_scenarioConfigGrid);
             tabPage.Controls.Add(panel);
@@ -411,7 +422,18 @@ namespace OmenSuperHub
         {
             // 加载基础设置
             _enableAutoScheduling.Checked = _configManager.Config.IsAutoSchedulingEnabled;
-            _currentScenarioCombo.SelectedIndex = (int)_configManager.Config.CurrentScenario;
+            
+            // 设置当前场景下拉框
+            string currentScenarioDisplayName = AdaptiveScheduler.GetScenarioDisplayName(_configManager.Config.CurrentScenario);
+            for (int i = 0; i < _currentScenarioCombo.Items.Count; i++)
+            {
+                if (_currentScenarioCombo.Items[i].ToString() == currentScenarioDisplayName)
+                {
+                    _currentScenarioCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+            
             _scanIntervalNumeric.Value = _configManager.Config.ScanInterval;
 
             // 加载应用规则
@@ -449,6 +471,7 @@ namespace OmenSuperHub
                     scenario.Value.FanControl,
                     scenario.Value.CpuPower,
                     scenario.Value.GpuPower,
+                    scenario.Key == _configManager.Config.DefaultScenario,
                     scenario.Value.Description
                 );
             }
@@ -494,9 +517,16 @@ namespace OmenSuperHub
         {
             try
             {
+                Logger.Info($"[AdaptiveConfigForm] 开始保存配置，当前AppRules数量: {_configManager.Config.AppRules.Count}");
+                
                 // 保存基础设置
                 _configManager.SetAutoSchedulingEnabled(_enableAutoScheduling.Checked);
-                _configManager.SetCurrentScenario((AppScenario)_currentScenarioCombo.SelectedIndex);
+                
+                // 转换显示名称到场景枚举
+                string selectedScenarioName = _currentScenarioCombo.SelectedItem?.ToString() ?? "办公模式";
+                AppScenario selectedScenario = AdaptiveScheduler.GetScenarioFromDisplayName(selectedScenarioName);
+                _configManager.SetCurrentScenario(selectedScenario);
+                
                 _configManager.Config.ScanInterval = (int)_scanIntervalNumeric.Value;
 
                 // 保存应用规则
@@ -505,9 +535,12 @@ namespace OmenSuperHub
                 // 保存场景配置
                 SaveScenarioConfig();
 
+                Logger.Info($"[AdaptiveConfigForm] 准备保存到文件，最终AppRules数量: {_configManager.Config.AppRules.Count}");
+                
                 // 保存到文件
                 _configManager.SaveConfig();
 
+                Logger.Info($"[AdaptiveConfigForm] 配置保存完成");
                 MessageBox.Show("配置已保存成功！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 // 保存后不关闭窗口，让用户继续编辑
             }
@@ -548,6 +581,13 @@ namespace OmenSuperHub
                 config.CpuPower = row.Cells["CpuPower"].Value?.ToString() ?? "max";
                 config.GpuPower = row.Cells["GpuPower"].Value?.ToString() ?? "max";
                 config.Description = row.Cells["Description"].Value?.ToString() ?? "";
+
+                // 处理默认场景设置
+                bool isDefault = Convert.ToBoolean(row.Cells["IsDefault"].Value ?? false);
+                if (isDefault)
+                {
+                    _configManager.Config.DefaultScenario = scenario;
+                }
             }
         }
 
@@ -722,6 +762,28 @@ namespace OmenSuperHub
             DialogResult dialogResult = form.ShowDialog();
             value = textBox.Text;
             return dialogResult;
+        }
+
+        private void ScenarioConfigGrid_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            // 如果修改的是默认场景列
+            if (e.ColumnIndex >= 0 && _scenarioConfigGrid.Columns[e.ColumnIndex].Name == "IsDefault")
+            {
+                // 获取当前行的值
+                bool isChecked = Convert.ToBoolean(_scenarioConfigGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value ?? false);
+                
+                if (isChecked)
+                {
+                    // 如果当前行被选中为默认，则取消其他行的默认状态
+                    for (int i = 0; i < _scenarioConfigGrid.Rows.Count; i++)
+                    {
+                        if (i != e.RowIndex)
+                        {
+                            _scenarioConfigGrid.Rows[i].Cells["IsDefault"].Value = false;
+                        }
+                    }
+                }
+            }
         }
     }
 }
