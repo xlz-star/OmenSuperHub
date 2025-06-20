@@ -108,13 +108,13 @@ namespace OmenSuperHub
             {
                 Text = "扫描间隔（秒）：",
                 Location = new Point(20, yPos),
-                Size = new Size(100, 25)
+                Size = new Size(120, 25)
             };
             panel.Controls.Add(scanIntervalLabel);
 
             _scanIntervalNumeric = new NumericUpDown
             {
-                Location = new Point(130, yPos),
+                Location = new Point(150, yPos),
                 Size = new Size(80, 25),
                 Minimum = 5,
                 Maximum = 300,
@@ -569,12 +569,15 @@ namespace OmenSuperHub
         private void SaveScenarioConfig()
         {
             var scenarios = _configManager.Config.Scenarios.Keys.ToArray();
+            Logger.Debug($"[AdaptiveConfigForm] 开始保存场景配置，场景数量: {scenarios.Length}");
+            
             for (int i = 0; i < _scenarioConfigGrid.Rows.Count && i < scenarios.Length; i++)
             {
                 var row = _scenarioConfigGrid.Rows[i];
                 var scenario = scenarios[i];
                 var config = _configManager.Config.Scenarios[scenario];
 
+                string oldCpuPower = config.CpuPower;
                 config.FanTable = row.Cells["FanTable"].Value?.ToString() ?? "silent";
                 config.FanMode = row.Cells["FanMode"].Value?.ToString() ?? "performance";
                 config.FanControl = row.Cells["FanControl"].Value?.ToString() ?? "auto";
@@ -582,11 +585,14 @@ namespace OmenSuperHub
                 config.GpuPower = row.Cells["GpuPower"].Value?.ToString() ?? "max";
                 config.Description = row.Cells["Description"].Value?.ToString() ?? "";
 
+                Logger.Debug($"[AdaptiveConfigForm] 场景 {scenario}: CPU功率 {oldCpuPower} -> {config.CpuPower}");
+
                 // 处理默认场景设置
                 bool isDefault = Convert.ToBoolean(row.Cells["IsDefault"].Value ?? false);
                 if (isDefault)
                 {
                     _configManager.Config.DefaultScenario = scenario;
+                    Logger.Info($"[AdaptiveConfigForm] 设置默认场景为: {scenario}");
                 }
             }
         }

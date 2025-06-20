@@ -62,8 +62,7 @@ namespace OmenSuperHub.AdaptiveScheduling
 
         public ScenarioConfig()
         {
-            InitializeDefaultScenarios();
-            // 不再自动初始化默认应用规则，让用户手动选择
+            // 不再自动初始化，让ConfigManager决定何时初始化
         }
 
         /// <summary>

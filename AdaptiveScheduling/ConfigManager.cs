@@ -37,6 +37,7 @@ namespace OmenSuperHub.AdaptiveScheduling
                     string json = File.ReadAllText(_configFilePath);
                     _config = JsonConvert.DeserializeObject<ScenarioConfig>(json);
                     Logger.Info($"[ConfigManager] 配置加载成功，AppRules数量: {_config.AppRules?.Count ?? 0}");
+                    Logger.Info($"[ConfigManager] 场景配置数量: {_config.Scenarios?.Count ?? 0}, 默认场景: {_config.DefaultScenario}");
                     
                     // 如果反序列化后AppRules为null，初始化为空列表（不添加默认规则）
                     if (_config.AppRules == null)
@@ -48,17 +49,25 @@ namespace OmenSuperHub.AdaptiveScheduling
                     // 如果反序列化后Scenarios为null，初始化默认场景
                     if (_config.Scenarios == null || _config.Scenarios.Count == 0)
                     {
+                        Logger.Info($"[ConfigManager] Scenarios为空或数量为0，需要初始化默认场景");
                         _config.Scenarios = new Dictionary<AppScenario, PerformanceConfig>();
                         _config.InitializeDefaultScenariosOnly();
-                        Logger.Debug($"[ConfigManager] Scenarios为空，初始化默认场景");
+                        Logger.Info($"[ConfigManager] 默认场景初始化完成，场景数量: {_config.Scenarios.Count}");
+                    }
+                    else
+                    {
+                        Logger.Info($"[ConfigManager] 场景配置从文件加载成功，数量: {_config.Scenarios.Count}");
                     }
                 }
                 else
                 {
                     Logger.Info($"[ConfigManager] 配置文件不存在，创建新配置");
                     _config = new ScenarioConfig();
+                    // 初始化默认场景（新配置时才需要）
+                    _config.InitializeDefaultScenariosOnly();
+                    Logger.Info($"[ConfigManager] 新配置创建完成，场景数量: {_config.Scenarios.Count}, AppRules数量: {_config.AppRules.Count}");
                     SaveConfig();
-                    Logger.Info($"[ConfigManager] 新配置已保存，AppRules数量: {_config.AppRules.Count}");
+                    Logger.Info($"[ConfigManager] 新配置已保存");
                 }
 
                 // 从注册表加载运行时设置
@@ -68,6 +77,9 @@ namespace OmenSuperHub.AdaptiveScheduling
             {
                 Logger.Error($"配置加载失败: {ex.Message}");
                 _config = new ScenarioConfig();
+                // 异常情况下也需要初始化默认场景
+                _config.InitializeDefaultScenariosOnly();
+                Logger.Info($"[ConfigManager] 异常恢复：创建默认配置，场景数量: {_config.Scenarios.Count}");
             }
         }
 
@@ -223,8 +235,10 @@ namespace OmenSuperHub.AdaptiveScheduling
         public void ResetToDefault()
         {
             _config = new ScenarioConfig();
-            // 重置时添加默认应用规则
+            // 重置时需要初始化默认场景和应用规则
+            _config.InitializeDefaultScenariosOnly();
             _config.InitializeDefaultAppRules();
+            Logger.Info($"[ConfigManager] 重置为默认配置，场景数量: {_config.Scenarios.Count}, AppRules数量: {_config.AppRules.Count}");
             SaveConfig();
         }
     }
