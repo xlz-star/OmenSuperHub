@@ -97,10 +97,7 @@ namespace OmenSuperHub
                 Size = new Size(150, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            _currentScenarioCombo.Items.AddRange(new object[]
-            {
-                "办公模式", "游戏模式", "创作模式", "娱乐模式", "节能模式", "自定义模式"
-            });
+            // 当前场景选项将在LoadData中动态设置
             panel.Controls.Add(_currentScenarioCombo);
             yPos += 40;
 
@@ -446,17 +443,6 @@ namespace OmenSuperHub
             // 加载基础设置
             _enableAutoScheduling.Checked = _configManager.Config.IsAutoSchedulingEnabled;
             
-            // 设置当前场景下拉框
-            string currentScenarioDisplayName = AdaptiveScheduler.GetScenarioDisplayName(_configManager.Config.CurrentScenario);
-            for (int i = 0; i < _currentScenarioCombo.Items.Count; i++)
-            {
-                if (_currentScenarioCombo.Items[i].ToString() == currentScenarioDisplayName)
-                {
-                    _currentScenarioCombo.SelectedIndex = i;
-                    break;
-                }
-            }
-            
             _scanIntervalNumeric.Value = _configManager.Config.ScanInterval;
             
             // 设置监控模式（从配置加载）
@@ -521,6 +507,7 @@ namespace OmenSuperHub
         /// </summary>
         private void UpdateAppRuleScenarioOptions()
         {
+            // 更新应用规则网格的场景选项
             if (_appRulesGrid.Columns["Scenario"] is DataGridViewComboBoxColumn scenarioColumn)
             {
                 // 清空现有选项
@@ -535,6 +522,49 @@ namespace OmenSuperHub
                 
                 Logger.Info($"[AdaptiveConfigForm] 已更新应用规则场景选项，数量: {scenarioColumn.Items.Count}");
             }
+            
+            // 同时更新当前场景下拉框
+            UpdateCurrentScenarioCombo();
+        }
+
+        /// <summary>
+        /// 更新当前场景下拉框选项
+        /// </summary>
+        private void UpdateCurrentScenarioCombo()
+        {
+            // 保存当前选中的场景
+            string currentSelection = _currentScenarioCombo.SelectedItem?.ToString();
+            
+            // 清空现有选项
+            _currentScenarioCombo.Items.Clear();
+            
+            // 添加当前可用的场景
+            foreach (var scenario in _configManager.Config.Scenarios.Keys)
+            {
+                string displayName = AdaptiveScheduler.GetScenarioDisplayName(scenario);
+                _currentScenarioCombo.Items.Add(displayName);
+            }
+            
+            // 尝试恢复之前的选择，如果不存在则选择第一项
+            if (!string.IsNullOrEmpty(currentSelection) && _currentScenarioCombo.Items.Contains(currentSelection))
+            {
+                _currentScenarioCombo.SelectedItem = currentSelection;
+            }
+            else if (_currentScenarioCombo.Items.Count > 0)
+            {
+                // 设置为配置中的当前场景
+                string configScenarioDisplayName = AdaptiveScheduler.GetScenarioDisplayName(_configManager.Config.CurrentScenario);
+                if (_currentScenarioCombo.Items.Contains(configScenarioDisplayName))
+                {
+                    _currentScenarioCombo.SelectedItem = configScenarioDisplayName;
+                }
+                else
+                {
+                    _currentScenarioCombo.SelectedIndex = 0;
+                }
+            }
+            
+            Logger.Info($"[AdaptiveConfigForm] 已更新当前场景下拉框，数量: {_currentScenarioCombo.Items.Count}");
         }
 
         private void AddRuleButton_Click(object sender, EventArgs e)
