@@ -239,7 +239,7 @@ namespace OmenSuperHub
             };
             scenarioColumn.Items.AddRange(new object[]
             {
-                "Office", "Gaming", "Content", "Media", "Idle", "Custom"
+                "办公模式", "游戏模式", "创作模式", "娱乐模式", "节能模式", "自定义模式"
             });
             _appRulesGrid.Columns.Add(scenarioColumn);
 
@@ -479,7 +479,7 @@ namespace OmenSuperHub
                 _appRulesGrid.Rows.Add(
                     rule.ProcessName,
                     rule.WindowTitle,
-                    rule.Scenario.ToString(),
+                    AdaptiveScheduler.GetScenarioDisplayName(rule.Scenario),
                     rule.Priority,
                     rule.IsEnabled,
                     rule.Description
@@ -587,7 +587,8 @@ namespace OmenSuperHub
 
                 rule.ProcessName = row.Cells["ProcessName"].Value?.ToString() ?? "";
                 rule.WindowTitle = row.Cells["WindowTitle"].Value?.ToString() ?? "";
-                rule.Scenario = (AppScenario)Enum.Parse(typeof(AppScenario), row.Cells["Scenario"].Value?.ToString() ?? "Office");
+                string scenarioDisplayName = row.Cells["Scenario"].Value?.ToString() ?? "办公模式";
+                rule.Scenario = AdaptiveScheduler.GetScenarioFromDisplayName(scenarioDisplayName);
                 rule.Priority = Convert.ToInt32(row.Cells["Priority"].Value ?? 5);
                 rule.IsEnabled = Convert.ToBoolean(row.Cells["IsEnabled"].Value ?? true);
                 rule.Description = row.Cells["Description"].Value?.ToString() ?? "";
