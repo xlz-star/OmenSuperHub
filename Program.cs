@@ -55,6 +55,14 @@ namespace OmenSuperHub {
 
     [STAThread]
     static void Main(string[] args) {
+      // 检查是否运行测试
+      if (args.Length > 0 && args[0] == "--test") {
+        Tests.SimpleTestRunner.RunAllTests();
+        Console.WriteLine("按任意键继续...");
+        Console.ReadKey();
+        return;
+      }
+
       bool isNewInstance;
       using (Mutex mutex = new Mutex(true, "MyUniqueAppMutex", out isNewInstance)) {
         if (!isNewInstance) {
