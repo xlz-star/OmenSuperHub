@@ -184,5 +184,14 @@ namespace OmenSuperHub.AdaptiveScheduling
             _config.CurrentScenario = scenario;
             SaveRuntimeSettings();
         }
+
+        /// <summary>
+        /// 重置为默认配置
+        /// </summary>
+        public void ResetToDefault()
+        {
+            _config = new ScenarioConfig();
+            SaveConfig();
+        }
     }
 }

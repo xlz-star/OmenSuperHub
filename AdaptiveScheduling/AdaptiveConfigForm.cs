@@ -483,7 +483,7 @@ namespace OmenSuperHub
             if (MessageBox.Show("确定要重置为默认配置吗？这将清除所有自定义设置。", "确认", 
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                _configManager.Config = new ScenarioConfig();
+                _configManager.ResetToDefault();
                 LoadData();
             }
         }
