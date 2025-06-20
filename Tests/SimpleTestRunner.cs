@@ -16,6 +16,9 @@ namespace OmenSuperHub.Tests
         public static void RunAllTests()
         {
             Console.WriteLine("开始运行自适应调度功能测试...\n");
+            
+            // 启用测试模式以避免硬件权限问题
+            PerformanceController.IsTestMode = true;
 
             // 运行所有测试
             TestScenarioConfigInitialization();

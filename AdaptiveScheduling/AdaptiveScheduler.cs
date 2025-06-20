@@ -186,6 +186,9 @@ namespace OmenSuperHub.AdaptiveScheduling
     {
         // 委托用于调用Program类的方法
         public static Action<PerformanceConfig> ApplyConfigDelegate;
+        
+        // 测试模式标志，用于跳过硬件调用
+        public static bool IsTestMode = false;
 
         /// <summary>
         /// 应用性能配置
@@ -217,58 +220,72 @@ namespace OmenSuperHub.AdaptiveScheduling
         /// </summary>
         private void ApplyConfigDirect(PerformanceConfig config)
         {
-            // 应用性能模式
-            if (config.FanMode == "performance")
+            // 如果是测试模式，跳过硬件调用
+            if (IsTestMode)
             {
-                OmenHardware.SetFanMode(0x31);
-            }
-            else if (config.FanMode == "default")
-            {
-                OmenHardware.SetFanMode(0x30);
+                Console.WriteLine($"测试模式：模拟应用配置 - FanMode: {config.FanMode}, FanControl: {config.FanControl}, CpuPower: {config.CpuPower}, GpuPower: {config.GpuPower}");
+                return;
             }
 
-            // 应用风扇控制
-            if (config.FanControl == "auto")
+            try
             {
-                OmenHardware.SetMaxFanSpeedOff();
-            }
-            else if (config.FanControl == "max")
-            {
-                OmenHardware.SetMaxFanSpeedOn();
-            }
-            else if (config.FanControl.Contains(" RPM"))
-            {
-                OmenHardware.SetMaxFanSpeedOff();
-                int rpmValue = int.Parse(config.FanControl.Replace(" RPM", "").Trim());
-                OmenHardware.SetFanLevel(rpmValue / 100, rpmValue / 100);
-            }
-
-            // 应用CPU功率
-            if (config.CpuPower == "max")
-            {
-                OmenHardware.SetCpuPowerLimit(254);
-            }
-            else if (config.CpuPower.Contains(" W"))
-            {
-                int value = int.Parse(config.CpuPower.Replace(" W", "").Trim());
-                if (value > 10 && value <= 254)
+                // 应用性能模式
+                if (config.FanMode == "performance")
                 {
-                    OmenHardware.SetCpuPowerLimit((byte)value);
+                    OmenHardware.SetFanMode(0x31);
+                }
+                else if (config.FanMode == "default")
+                {
+                    OmenHardware.SetFanMode(0x30);
+                }
+
+                // 应用风扇控制
+                if (config.FanControl == "auto")
+                {
+                    OmenHardware.SetMaxFanSpeedOff();
+                }
+                else if (config.FanControl == "max")
+                {
+                    OmenHardware.SetMaxFanSpeedOn();
+                }
+                else if (config.FanControl.Contains(" RPM"))
+                {
+                    OmenHardware.SetMaxFanSpeedOff();
+                    int rpmValue = int.Parse(config.FanControl.Replace(" RPM", "").Trim());
+                    OmenHardware.SetFanLevel(rpmValue / 100, rpmValue / 100);
+                }
+
+                // 应用CPU功率
+                if (config.CpuPower == "max")
+                {
+                    OmenHardware.SetCpuPowerLimit(254);
+                }
+                else if (config.CpuPower.Contains(" W"))
+                {
+                    int value = int.Parse(config.CpuPower.Replace(" W", "").Trim());
+                    if (value > 10 && value <= 254)
+                    {
+                        OmenHardware.SetCpuPowerLimit((byte)value);
+                    }
+                }
+
+                // 应用GPU功率
+                switch (config.GpuPower)
+                {
+                    case "max":
+                        OmenHardware.SetMaxGpuPower();
+                        break;
+                    case "med":
+                        OmenHardware.SetMedGpuPower();
+                        break;
+                    case "min":
+                        OmenHardware.SetMinGpuPower();
+                        break;
                 }
             }
-
-            // 应用GPU功率
-            switch (config.GpuPower)
+            catch (UnauthorizedAccessException)
             {
-                case "max":
-                    OmenHardware.SetMaxGpuPower();
-                    break;
-                case "med":
-                    OmenHardware.SetMedGpuPower();
-                    break;
-                case "min":
-                    OmenHardware.SetMinGpuPower();
-                    break;
+                throw new UnauthorizedAccessException("硬件控制需要管理员权限。请以管理员身份运行程序，或在测试模式下运行。");
             }
         }
     }
