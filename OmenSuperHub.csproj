@@ -119,6 +119,9 @@
     <Reference Include="Microsoft.Win32.TaskScheduler, Version=2.11.0.0, Culture=neutral, PublicKeyToken=e25603a88b3aa7da, processorArchitecture=MSIL">
       <HintPath>packages\TaskScheduler.2.11.0\lib\net48\Microsoft.Win32.TaskScheduler.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>packages\PresentationFramework.4.6.0\lib\PresentationFramework.dll</HintPath>
@@ -249,6 +252,13 @@
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdaptiveScheduling\AdaptiveSchedulingModels.cs" />
+    <Compile Include="AdaptiveScheduling\ProcessMonitor.cs" />
+    <Compile Include="AdaptiveScheduling\ConfigManager.cs" />
+    <Compile Include="AdaptiveScheduling\AdaptiveScheduler.cs" />
+    <Compile Include="AdaptiveScheduling\AdaptiveConfigForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="FloatingForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -293,7 +303,9 @@
     <None Include="OmenSuperHub_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="README.md" />
+    <None Include="Documentation\ADAPTIVE_SCHEDULING_GUIDE.md" />
     <None Include="Resources\fan.ico" />
+    <Compile Include="Tests\AdaptiveSchedulingTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">

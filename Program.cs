@@ -23,6 +23,7 @@ using LibreISensor = LibreHardwareMonitor.Hardware.ISensor;
 using LibreSensorType = LibreHardwareMonitor.Hardware.SensorType;
 using static OmenSuperHub.OmenHardware;
 using System.IO.Pipes;
+using OmenSuperHub.AdaptiveScheduling;
 
 namespace OmenSuperHub {
   static class Program {
@@ -50,6 +51,7 @@ namespace OmenSuperHub {
     static System.Windows.Forms.Timer checkFloatingTimer, optimiseTimer;
     static NotifyIcon trayIcon;
     static FloatingForm floatingForm;
+    static AdaptiveScheduler adaptiveScheduler;
 
     [STAThread]
     static void Main(string[] args) {
@@ -108,6 +110,9 @@ namespace OmenSuperHub {
 
         // Restore last setting
         RestoreConfig();
+
+        // Initialize adaptive scheduler
+        InitializeAdaptiveScheduler();
 
         if (alreadyRead != alreadyReadCode) {
           HelpForm.Instance.Show();
@@ -658,6 +663,49 @@ namespace OmenSuperHub {
       }, true));
       settingMenu.DropDownItems.Add(autoStartMenu);
       trayIcon.ContextMenuStrip.Items.Add(settingMenu);
+
+      // 添加自适应调度菜单
+      ToolStripMenuItem adaptiveSchedulingMenu = new ToolStripMenuItem("自适应调度");
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("启用自动调度", "adaptiveEnabledGroup", (s, e) => {
+        adaptiveScheduler.Enable();
+        SaveConfig();
+      }, false));
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("禁用自动调度", "adaptiveEnabledGroup", (s, e) => {
+        adaptiveScheduler.Disable();
+        SaveConfig();
+      }, true));
+      adaptiveSchedulingMenu.DropDownItems.Add(new ToolStripSeparator());
+      
+      // 手动场景切换
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("游戏模式", "adaptiveScenarioGroup", (s, e) => {
+        adaptiveScheduler.SetScenario(AppScenario.Gaming);
+        SaveConfig();
+      }, false));
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("创作模式", "adaptiveScenarioGroup", (s, e) => {
+        adaptiveScheduler.SetScenario(AppScenario.Content);
+        SaveConfig();
+      }, false));
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("办公模式", "adaptiveScenarioGroup", (s, e) => {
+        adaptiveScheduler.SetScenario(AppScenario.Office);
+        SaveConfig();
+      }, true));
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("娱乐模式", "adaptiveScenarioGroup", (s, e) => {
+        adaptiveScheduler.SetScenario(AppScenario.Media);
+        SaveConfig();
+      }, false));
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("节能模式", "adaptiveScenarioGroup", (s, e) => {
+        adaptiveScheduler.SetScenario(AppScenario.Idle);
+        SaveConfig();
+      }, false));
+      adaptiveSchedulingMenu.DropDownItems.Add(new ToolStripSeparator());
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("配置管理", null, (s, e) => {
+        ShowAdaptiveConfigForm();
+      }, false));
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("清除手动设置", null, (s, e) => {
+        adaptiveScheduler.ClearManualOverride();
+      }, false));
+      
+      trayIcon.ContextMenuStrip.Items.Add(adaptiveSchedulingMenu);
 
       trayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator()); // Separator between groups
       trayIcon.ContextMenuStrip.Items.Add(CreateMenuItem("退出", null, (s, e) => Exit(), false));
@@ -1867,11 +1915,174 @@ namespace OmenSuperHub {
       return str;
     }
 
+    // 初始化自适应调度器
+    static void InitializeAdaptiveScheduler() {
+      try {
+        adaptiveScheduler = new AdaptiveScheduler();
+        
+        // 设置性能控制器委托
+        PerformanceController.ApplyConfigDelegate = ApplyAdaptiveConfig;
+        
+        // 订阅场景变化事件
+        adaptiveScheduler.ScenarioChanged += OnAdaptiveScenarioChanged;
+        
+        // 更新菜单状态
+        UpdateAdaptiveMenuState();
+      } catch (Exception ex) {
+        Console.WriteLine($"初始化自适应调度失败: {ex.Message}");
+      }
+    }
+
+    // 应用自适应配置的委托方法
+    static void ApplyAdaptiveConfig(PerformanceConfig config) {
+      try {
+        // 应用风扇配置
+        fanTable = config.FanTable;
+        LoadFanConfig(config.FanTable + ".txt");
+
+        tempSensitivity = config.TempSensitivity;
+        respondSpeed = config.TempSensitivity switch {
+          "realtime" => 1.0f,
+          "high" => 0.4f,
+          "medium" => 0.1f,
+          "low" => 0.04f,
+          _ => 0.4f
+        };
+
+        fanControl = config.FanControl;
+        if (config.FanControl == "auto") {
+          SetMaxFanSpeedOff();
+          fanControlTimer.Change(0, 1000);
+        } else if (config.FanControl == "max") {
+          SetMaxFanSpeedOn();
+          fanControlTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        } else if (config.FanControl.Contains(" RPM")) {
+          SetMaxFanSpeedOff();
+          fanControlTimer.Change(Timeout.Infinite, Timeout.Infinite);
+          int rpmValue = int.Parse(config.FanControl.Replace(" RPM", "").Trim());
+          SetFanLevel(rpmValue / 100, rpmValue / 100);
+        }
+
+        // 应用性能模式
+        fanMode = config.FanMode;
+        if (config.FanMode == "performance") {
+          SetFanMode(0x31);
+        } else if (config.FanMode == "default") {
+          SetFanMode(0x30);
+        }
+
+        // 应用CPU功率
+        cpuPower = config.CpuPower;
+        if (config.CpuPower == "max") {
+          SetCpuPowerLimit(254);
+        } else if (config.CpuPower.Contains(" W")) {
+          int value = int.Parse(config.CpuPower.Replace(" W", "").Trim());
+          if (value > 10 && value <= 254) {
+            SetCpuPowerLimit((byte)value);
+          }
+        }
+
+        // 应用GPU功率
+        gpuPower = config.GpuPower;
+        switch (config.GpuPower) {
+          case "max":
+            SetMaxGpuPower();
+            break;
+          case "med":
+            SetMedGpuPower();
+            break;
+          case "min":
+            SetMinGpuPower();
+            break;
+        }
+
+        // 应用GPU频率限制
+        gpuClock = config.GpuClock;
+        SetGPUClockLimit(config.GpuClock);
+
+        // 应用DB版本
+        if (DBVersion != config.DBVersion) {
+          DBVersion = config.DBVersion;
+          if (config.DBVersion == 1 && powerOnline) {
+            // 解锁版本
+            SetFanMode(0x31);
+            SetMaxGpuPower();
+            SetCpuPowerLimit((byte)CPULimitDB);
+            countDB = countDBInit;
+          } else {
+            // 普通版本
+            string deviceId = "\"ACPI\\NVDA0820\\NPCF\"";
+            string command = $"pnputil /enable-device {deviceId}";
+            ExecuteCommand(command);
+          }
+        }
+      } catch (Exception ex) {
+        Console.WriteLine($"应用自适应配置失败: {ex.Message}");
+      }
+    }
+
+    // 自适应场景变化事件处理
+    static void OnAdaptiveScenarioChanged(AppScenario scenario, string triggerSource) {
+      try {
+        // 更新菜单状态
+        UpdateAdaptiveMenuState();
+        
+        // 更新托盘提示
+        string scenarioName = AdaptiveScheduler.GetScenarioDisplayName(scenario);
+        trayIcon.BalloonTipTitle = "场景已切换";
+        trayIcon.BalloonTipText = $"已切换到{scenarioName}\\n触发源: {triggerSource}";
+        trayIcon.BalloonTipIcon = ToolTipIcon.Info;
+        trayIcon.ShowBalloonTip(3000);
+      } catch (Exception ex) {
+        Console.WriteLine($"场景变化事件处理失败: {ex.Message}");
+      }
+    }
+
+    // 更新自适应菜单状态
+    static void UpdateAdaptiveMenuState() {
+      try {
+        bool isEnabled = adaptiveScheduler?.IsEnabled ?? false;
+        UpdateCheckedState("adaptiveEnabledGroup", isEnabled ? "启用自动调度" : "禁用自动调度");
+        
+        AppScenario currentScenario = adaptiveScheduler?.CurrentScenario ?? AppScenario.Office;
+        string scenarioName = currentScenario switch {
+          AppScenario.Gaming => "游戏模式",
+          AppScenario.Content => "创作模式",
+          AppScenario.Office => "办公模式",
+          AppScenario.Media => "娱乐模式",
+          AppScenario.Idle => "节能模式",
+          _ => "办公模式"
+        };
+        UpdateCheckedState("adaptiveScenarioGroup", scenarioName);
+      } catch (Exception ex) {
+        Console.WriteLine($"更新自适应菜单状态失败: {ex.Message}");
+      }
+    }
+
+    // 显示自适应配置窗口
+    static void ShowAdaptiveConfigForm() {
+      try {
+        if (adaptiveScheduler != null) {
+          var configForm = new AdaptiveConfigForm(adaptiveScheduler.GetConfigManager());
+          if (configForm.ShowDialog() == DialogResult.OK) {
+            // 重新加载配置
+            adaptiveScheduler.ReloadConfig();
+            UpdateAdaptiveMenuState();
+          }
+        }
+      } catch (Exception ex) {
+        MessageBox.Show($"打开配置窗口失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+      }
+    }
+
     static void Exit() {
       if (omenKey == "custom") {
         OmenKeyOff();
       }
       tooltipUpdateTimer.Stop(); // 停止定时器
+
+      // 释放自适应调度器
+      adaptiveScheduler?.Dispose();
 
       openComputer.Close();
       libreComputer.Close();
