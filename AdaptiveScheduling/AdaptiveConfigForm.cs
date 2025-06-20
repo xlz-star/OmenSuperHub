@@ -15,6 +15,7 @@ namespace OmenSuperHub
         private TabControl _tabControl;
         private CheckBox _enableAutoScheduling;
         private ComboBox _currentScenarioCombo;
+        private ComboBox _monitorModeCombo;
         private DataGridView _appRulesGrid;
         private DataGridView _scenarioConfigGrid;
         private NumericUpDown _scanIntervalNumeric;
@@ -123,14 +124,38 @@ namespace OmenSuperHub
             panel.Controls.Add(_scanIntervalNumeric);
             yPos += 40;
 
+            // 监控模式
+            var monitorModeLabel = new Label
+            {
+                Text = "监控模式：",
+                Location = new Point(20, yPos),
+                Size = new Size(100, 25)
+            };
+            panel.Controls.Add(monitorModeLabel);
+
+            _monitorModeCombo = new ComboBox
+            {
+                Location = new Point(130, yPos),
+                Size = new Size(150, 25),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _monitorModeCombo.Items.AddRange(new object[]
+            {
+                "定时器模式", "事件驱动模式"
+            });
+            _monitorModeCombo.SelectedIndex = 0; // 默认选择定时器模式
+            panel.Controls.Add(_monitorModeCombo);
+            yPos += 40;
+
             // 说明文字
             var helpLabel = new Label
             {
                 Text = "• 启用自适应调度后，系统会根据运行的应用自动切换性能模式\\n" +
-                       "• 扫描间隔决定了检测应用的频率，越小响应越快但占用资源越多\\n" +
+                       "• 扫描间隔决定了检测应用的频率（仅定时器模式），越小响应越快但占用资源越多\\n" +
+                       "• 事件驱动模式响应更快（<100ms）且资源占用更低，推荐优先使用\\n" +
                        "• 手动设置场景会临时禁用自动调度，重新启用后会恢复自动检测",
                 Location = new Point(20, yPos),
-                Size = new Size(500, 80),
+                Size = new Size(500, 100),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 ForeColor = Color.DarkBlue
             };
@@ -435,6 +460,9 @@ namespace OmenSuperHub
             }
             
             _scanIntervalNumeric.Value = _configManager.Config.ScanInterval;
+            
+            // 设置默认监控模式（初始时选择定时器模式）
+            _monitorModeCombo.SelectedIndex = 0;
 
             // 加载应用规则
             LoadAppRules();

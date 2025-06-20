@@ -4,39 +4,56 @@ using System.Threading.Tasks;
 namespace OmenSuperHub.AdaptiveScheduling
 {
     /// <summary>
+    /// 监控器类型枚举
+    /// </summary>
+    public enum MonitorType
+    {
+        Timer,      // 传统的定时器轮询模式
+        EventDriven // 事件驱动模式
+    }
+
+    /// <summary>
     /// 自适应调度引擎
     /// </summary>
     public class AdaptiveScheduler
     {
         private readonly ConfigManager _configManager;
         private readonly ProcessMonitor _processMonitor;
+        private readonly EventDrivenProcessMonitor _eventDrivenMonitor;
         private readonly PerformanceController _performanceController;
         private bool _isEnabled = false;
         private AppScenario _currentScenario = AppScenario.Office;
         private bool _isManualOverride = false;
+        private MonitorType _currentMonitorType = MonitorType.Timer;
 
         public event Action<AppScenario, string> ScenarioChanged;
 
         public bool IsEnabled => _isEnabled;
         public AppScenario CurrentScenario => _currentScenario;
 
-        public AdaptiveScheduler()
+        public AdaptiveScheduler(MonitorType monitorType = MonitorType.Timer)
         {
             Logger.ClearLog(); // 每次启动时清空日志
-            Logger.Info($"[AdaptiveScheduler] 开始初始化自适应调度器");
+            Logger.Info($"[AdaptiveScheduler] 开始初始化自适应调度器，监控模式: {monitorType}");
             _configManager = new ConfigManager();
             Logger.Info($"[AdaptiveScheduler] ConfigManager创建完成，AppRules数量: {_configManager.Config.AppRules.Count}");
             
+            // 初始化两种监控器
             _processMonitor = new ProcessMonitor(_configManager.Config.AppRules, _configManager.Config.ScanInterval);
             _processMonitor.UpdateDefaultScenario(_configManager.Config.DefaultScenario);
-            _performanceController = new PerformanceController();
-
             _processMonitor.ScenarioDetected += OnScenarioDetected;
+
+            _eventDrivenMonitor = new EventDrivenProcessMonitor(_configManager.Config.AppRules);
+            _eventDrivenMonitor.UpdateDefaultScenario(_configManager.Config.DefaultScenario);
+            _eventDrivenMonitor.ScenarioDetected += OnScenarioDetected;
+
+            _performanceController = new PerformanceController();
+            _currentMonitorType = monitorType;
 
             // 加载保存的状态
             _isEnabled = _configManager.Config.IsAutoSchedulingEnabled;
             _currentScenario = _configManager.Config.CurrentScenario;
-            Logger.Info($"[AdaptiveScheduler] 初始化完成，当前场景: {_currentScenario}, 自动调度: {_isEnabled}");
+            Logger.Info($"[AdaptiveScheduler] 初始化完成，当前场景: {_currentScenario}, 自动调度: {_isEnabled}, 监控模式: {_currentMonitorType}");
         }
 
         /// <summary>
@@ -49,10 +66,21 @@ namespace OmenSuperHub.AdaptiveScheduling
             _isEnabled = true;
             _isManualOverride = false;
             _configManager.SetAutoSchedulingEnabled(true);
-            _processMonitor.StartMonitoring();
+            
+            // 根据当前监控模式启动相应的监控器
+            if (_currentMonitorType == MonitorType.EventDriven)
+            {
+                _eventDrivenMonitor.StartMonitoring();
+                Logger.Info($"[AdaptiveScheduler] 启用事件驱动监控器");
+            }
+            else
+            {
+                _processMonitor.StartMonitoring();
+                Logger.Info($"[AdaptiveScheduler] 启用定时器监控器");
+            }
 
             // 立即检测当前场景
-            Task.Run(() => _processMonitor.TriggerDetection());
+            Task.Run(() => TriggerDetection());
         }
 
         /// <summary>
@@ -64,7 +92,11 @@ namespace OmenSuperHub.AdaptiveScheduling
 
             _isEnabled = false;
             _configManager.SetAutoSchedulingEnabled(false);
+            
+            // 停止所有监控器
             _processMonitor.StopMonitoring();
+            _eventDrivenMonitor.StopMonitoring();
+            Logger.Info($"[AdaptiveScheduler] 禁用自适应调度，所有监控器已停止");
         }
 
         /// <summary>
@@ -92,16 +124,29 @@ namespace OmenSuperHub.AdaptiveScheduling
             Logger.Debug($"[AdaptiveScheduler] 开始重新加载配置");
             _configManager.LoadConfig();
 
-            // 更新进程监控器的应用规则和默认场景
+            // 停止所有监控器
             _processMonitor.StopMonitoring();
+            _eventDrivenMonitor.StopMonitoring();
+
+            // 更新两个监控器的应用规则和默认场景
             _processMonitor.UpdateAppRules(_configManager.Config.AppRules);
             _processMonitor.UpdateDefaultScenario(_configManager.Config.DefaultScenario);
-            Logger.Info($"[AdaptiveScheduler] ProcessMonitor已更新AppRules，数量: {_configManager.Config.AppRules.Count}");
+            _eventDrivenMonitor.UpdateAppRules(_configManager.Config.AppRules);
+            _eventDrivenMonitor.UpdateDefaultScenario(_configManager.Config.DefaultScenario);
+            Logger.Info($"[AdaptiveScheduler] 两个监控器已更新AppRules，数量: {_configManager.Config.AppRules.Count}");
 
             if (_isEnabled)
             {
-                _processMonitor.StartMonitoring();
-                Logger.Debug($"[AdaptiveScheduler] 重新启动进程监控");
+                if (_currentMonitorType == MonitorType.EventDriven)
+                {
+                    _eventDrivenMonitor.StartMonitoring();
+                    Logger.Debug($"[AdaptiveScheduler] 重新启动事件驱动监控");
+                }
+                else
+                {
+                    _processMonitor.StartMonitoring();
+                    Logger.Debug($"[AdaptiveScheduler] 重新启动定时器监控");
+                }
             }
         }
 
@@ -153,7 +198,66 @@ namespace OmenSuperHub.AdaptiveScheduling
             if (_isEnabled)
             {
                 // 重新检测当前场景
-                Task.Run(() => _processMonitor.TriggerDetection());
+                Task.Run(() => TriggerDetection());
+            }
+        }
+
+        /// <summary>
+        /// 切换监控模式
+        /// </summary>
+        public void SetMonitorType(MonitorType monitorType)
+        {
+            if (_currentMonitorType == monitorType) return;
+
+            bool wasEnabled = _isEnabled;
+            
+            // 如果当前启用，先停止所有监控器
+            if (_isEnabled)
+            {
+                _processMonitor.StopMonitoring();
+                _eventDrivenMonitor.StopMonitoring();
+            }
+
+            _currentMonitorType = monitorType;
+            Logger.Info($"[AdaptiveScheduler] 切换监控模式为: {monitorType}");
+
+            // 如果之前启用，重新启动新的监控器
+            if (wasEnabled)
+            {
+                if (_currentMonitorType == MonitorType.EventDriven)
+                {
+                    _eventDrivenMonitor.StartMonitoring();
+                }
+                else
+                {
+                    _processMonitor.StartMonitoring();
+                }
+                
+                // 立即检测当前场景
+                Task.Run(() => TriggerDetection());
+            }
+        }
+
+        /// <summary>
+        /// 获取当前监控模式
+        /// </summary>
+        public MonitorType GetMonitorType()
+        {
+            return _currentMonitorType;
+        }
+
+        /// <summary>
+        /// 触发检测
+        /// </summary>
+        public void TriggerDetection()
+        {
+            if (_currentMonitorType == MonitorType.EventDriven)
+            {
+                _eventDrivenMonitor.TriggerDetection();
+            }
+            else
+            {
+                _processMonitor.TriggerDetection();
             }
         }
 
@@ -211,6 +315,9 @@ namespace OmenSuperHub.AdaptiveScheduling
         public void Dispose()
         {
             _processMonitor?.StopMonitoring();
+            _eventDrivenMonitor?.StopMonitoring();
+            _eventDrivenMonitor?.Dispose();
+            Logger.Info($"[AdaptiveScheduler] 已释放所有监控器资源");
         }
     }
 

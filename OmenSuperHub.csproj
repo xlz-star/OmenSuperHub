@@ -310,6 +310,7 @@
   <ItemGroup>
     <Compile Include="AdaptiveScheduling\AdaptiveSchedulingModels.cs" />
     <Compile Include="AdaptiveScheduling\ProcessMonitor.cs" />
+    <Compile Include="AdaptiveScheduling\EventDrivenProcessMonitor.cs" />
     <Compile Include="AdaptiveScheduling\ConfigManager.cs" />
     <Compile Include="AdaptiveScheduling\AdaptiveScheduler.cs" />
     <Compile Include="AdaptiveScheduling\Logger.cs" />
@@ -366,6 +367,7 @@
     <None Include="Documentation\ADAPTIVE_SCHEDULING_GUIDE.md" />
     <None Include="Resources\fan.ico" />
     <Compile Include="Tests\AdaptiveSchedulingTests.cs" />
+    <Compile Include="Tests\EventDrivenMonitorTest.cs" />
     <Compile Include="Tests\SimpleTestRunner.cs" />
   </ItemGroup>
   <ItemGroup>

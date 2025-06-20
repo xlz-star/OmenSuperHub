@@ -26,8 +26,10 @@ namespace OmenSuperHub.Tests
             TestConfigManagerCreation();
             TestConfigManagerScenarioRetrieval();
             TestProcessMonitorCreation();
+            TestEventDrivenMonitorCreation();
             TestAdaptiveSchedulerCreation();
             TestAdaptiveSchedulerStateManagement();
+            TestAdaptiveSchedulerMonitorTypeSwitching();
             TestScenarioDisplayNames();
             TestPerformanceController();
             TestAppRuleProperties();
@@ -268,6 +270,87 @@ namespace OmenSuperHub.Tests
             catch (Exception ex)
             {
                 Console.WriteLine($"✗ PerformanceController测试失败: {ex.Message}");
+                failedTests++;
+            }
+        }
+
+        private static void TestEventDrivenMonitorCreation()
+        {
+            try
+            {
+                var appRules = new List<AppRule>
+                {
+                    new AppRule { ProcessName = "test", Scenario = AppScenario.Gaming, Priority = 5 }
+                };
+                
+                using (var monitor = new EventDrivenProcessMonitor(appRules))
+                {
+                    Assert(monitor != null, "EventDrivenProcessMonitor应该能够创建");
+                    
+                    // 测试更新应用规则
+                    var newRules = new List<AppRule>
+                    {
+                        new AppRule { ProcessName = "newtest", Scenario = AppScenario.Content, Priority = 7 }
+                    };
+                    monitor.UpdateAppRules(newRules);
+                    Assert(true, "应该能更新应用规则");
+                    
+                    // 测试更新默认场景
+                    monitor.UpdateDefaultScenario(AppScenario.Media);
+                    Assert(true, "应该能更新默认场景");
+                    
+                    // 测试启动和停止监控
+                    monitor.StartMonitoring();
+                    Assert(true, "应该能启动监控");
+                    
+                    monitor.StopMonitoring();
+                    Assert(true, "应该能停止监控");
+                    
+                    // 测试手动触发检测
+                    monitor.TriggerDetection();
+                    Assert(true, "应该能手动触发检测");
+                }
+                Assert(true, "应该能正确释放资源");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"✗ EventDrivenProcessMonitor创建测试失败: {ex.Message}");
+                failedTests++;
+            }
+        }
+
+        private static void TestAdaptiveSchedulerMonitorTypeSwitching()
+        {
+            try
+            {
+                // 测试默认Timer模式
+                var scheduler1 = new AdaptiveScheduler();
+                Assert(scheduler1.GetMonitorType() == MonitorType.Timer, "默认应该使用Timer模式");
+                
+                // 测试指定EventDriven模式
+                var scheduler2 = new AdaptiveScheduler(MonitorType.EventDriven);
+                Assert(scheduler2.GetMonitorType() == MonitorType.EventDriven, "应该使用EventDriven模式");
+                
+                // 测试运行时切换监控模式
+                scheduler1.SetMonitorType(MonitorType.EventDriven);
+                Assert(scheduler1.GetMonitorType() == MonitorType.EventDriven, "应该能切换到EventDriven模式");
+                
+                scheduler1.SetMonitorType(MonitorType.Timer);
+                Assert(scheduler1.GetMonitorType() == MonitorType.Timer, "应该能切换回Timer模式");
+                
+                // 测试启用状态下的模式切换
+                scheduler1.Enable();
+                scheduler1.SetMonitorType(MonitorType.EventDriven);
+                Assert(scheduler1.GetMonitorType() == MonitorType.EventDriven, "启用状态下应该能切换模式");
+                scheduler1.Disable();
+                
+                // 清理资源
+                scheduler1.Dispose();
+                scheduler2.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"✗ AdaptiveScheduler监控模式切换测试失败: {ex.Message}");
                 failedTests++;
             }
         }
