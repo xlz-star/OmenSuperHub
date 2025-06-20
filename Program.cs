@@ -2174,11 +2174,10 @@ namespace OmenSuperHub {
       try {
         if (adaptiveScheduler != null) {
           var configForm = new AdaptiveConfigForm(adaptiveScheduler.GetConfigManager());
-          if (configForm.ShowDialog() == DialogResult.OK) {
-            // 重新加载配置
-            adaptiveScheduler.ReloadConfig();
-            UpdateAdaptiveMenuState();
-          }
+          configForm.ShowDialog();
+          // 无论用户是否点击确定，都重新加载配置（因为保存按钮不关闭窗口）
+          adaptiveScheduler.ReloadConfig();
+          UpdateAdaptiveMenuState();
         }
       } catch (Exception ex) {
         MessageBox.Show($"打开配置窗口失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);

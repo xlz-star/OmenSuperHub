@@ -171,6 +171,30 @@ namespace OmenSuperHub.AdaptiveScheduling
         }
 
         /// <summary>
+        /// 从显示名称获取场景枚举
+        /// </summary>
+        public static AppScenario GetScenarioFromDisplayName(string displayName)
+        {
+            switch (displayName)
+            {
+                case "游戏模式":
+                    return AppScenario.Gaming;
+                case "创作模式":
+                    return AppScenario.Content;
+                case "办公模式":
+                    return AppScenario.Office;
+                case "娱乐模式":
+                    return AppScenario.Media;
+                case "节能模式":
+                    return AppScenario.Idle;
+                case "自定义模式":
+                    return AppScenario.Custom;
+                default:
+                    return AppScenario.Office;
+            }
+        }
+
+        /// <summary>
         /// 释放资源
         /// </summary>
         public void Dispose()

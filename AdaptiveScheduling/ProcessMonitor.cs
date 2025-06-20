@@ -123,7 +123,14 @@ namespace OmenSuperHub.AdaptiveScheduling
             }
 
             // 基于资源占用判断
-            return DetectScenarioByResourceUsage();
+            var resourceBasedScenario = DetectScenarioByResourceUsage();
+            if (resourceBasedScenario != AppScenario.Office)
+            {
+                return resourceBasedScenario;
+            }
+
+            // 如果没有匹配的规则且资源占用正常，返回默认场景
+            return _configManager.Config.DefaultScenario;
         }
 
         /// <summary>

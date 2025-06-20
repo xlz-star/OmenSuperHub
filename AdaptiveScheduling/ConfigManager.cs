@@ -199,6 +199,15 @@ namespace OmenSuperHub.AdaptiveScheduling
         }
 
         /// <summary>
+        /// 设置默认场景
+        /// </summary>
+        public void SetDefaultScenario(AppScenario scenario)
+        {
+            _config.DefaultScenario = scenario;
+            SaveConfig();
+        }
+
+        /// <summary>
         /// 重置为默认配置
         /// </summary>
         public void ResetToDefault()

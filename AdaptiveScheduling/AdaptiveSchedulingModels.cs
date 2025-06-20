@@ -55,6 +55,7 @@ namespace OmenSuperHub.AdaptiveScheduling
         public List<AppRule> AppRules { get; set; } = new List<AppRule>();
         public bool IsAutoSchedulingEnabled { get; set; } = false;
         public AppScenario CurrentScenario { get; set; } = AppScenario.Office;
+        public AppScenario DefaultScenario { get; set; } = AppScenario.Office; // 默认场景
         public int ScanInterval { get; set; } = 30; // 扫描间隔（秒）
         public float CpuThreshold { get; set; } = 80.0f; // CPU占用阈值
         public float GpuThreshold { get; set; } = 50.0f; // GPU占用阈值
