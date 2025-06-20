@@ -453,7 +453,7 @@ namespace OmenSuperHub
 
                 rule.ProcessName = row.Cells["ProcessName"].Value?.ToString() ?? "";
                 rule.WindowTitle = row.Cells["WindowTitle"].Value?.ToString() ?? "";
-                rule.Scenario = Enum.Parse<AppScenario>(row.Cells["Scenario"].Value?.ToString() ?? "Office");
+                rule.Scenario = (AppScenario)Enum.Parse(typeof(AppScenario), row.Cells["Scenario"].Value?.ToString() ?? "Office");
                 rule.Priority = Convert.ToInt32(row.Cells["Priority"].Value ?? 5);
                 rule.IsEnabled = Convert.ToBoolean(row.Cells["IsEnabled"].Value ?? true);
                 rule.Description = row.Cells["Description"].Value?.ToString() ?? "";

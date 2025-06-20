@@ -1941,13 +1941,23 @@ namespace OmenSuperHub {
         LoadFanConfig(config.FanTable + ".txt");
 
         tempSensitivity = config.TempSensitivity;
-        respondSpeed = config.TempSensitivity switch {
-          "realtime" => 1.0f,
-          "high" => 0.4f,
-          "medium" => 0.1f,
-          "low" => 0.04f,
-          _ => 0.4f
-        };
+        switch (config.TempSensitivity) {
+          case "realtime":
+            respondSpeed = 1.0f;
+            break;
+          case "high":
+            respondSpeed = 0.4f;
+            break;
+          case "medium":
+            respondSpeed = 0.1f;
+            break;
+          case "low":
+            respondSpeed = 0.04f;
+            break;
+          default:
+            respondSpeed = 0.4f;
+            break;
+        }
 
         fanControl = config.FanControl;
         if (config.FanControl == "auto") {
@@ -2045,14 +2055,27 @@ namespace OmenSuperHub {
         UpdateCheckedState("adaptiveEnabledGroup", isEnabled ? "启用自动调度" : "禁用自动调度");
         
         AppScenario currentScenario = adaptiveScheduler?.CurrentScenario ?? AppScenario.Office;
-        string scenarioName = currentScenario switch {
-          AppScenario.Gaming => "游戏模式",
-          AppScenario.Content => "创作模式",
-          AppScenario.Office => "办公模式",
-          AppScenario.Media => "娱乐模式",
-          AppScenario.Idle => "节能模式",
-          _ => "办公模式"
-        };
+        string scenarioName;
+        switch (currentScenario) {
+          case AppScenario.Gaming:
+            scenarioName = "游戏模式";
+            break;
+          case AppScenario.Content:
+            scenarioName = "创作模式";
+            break;
+          case AppScenario.Office:
+            scenarioName = "办公模式";
+            break;
+          case AppScenario.Media:
+            scenarioName = "娱乐模式";
+            break;
+          case AppScenario.Idle:
+            scenarioName = "节能模式";
+            break;
+          default:
+            scenarioName = "办公模式";
+            break;
+        }
         UpdateCheckedState("adaptiveScenarioGroup", scenarioName);
       } catch (Exception ex) {
         Console.WriteLine($"更新自适应菜单状态失败: {ex.Message}");

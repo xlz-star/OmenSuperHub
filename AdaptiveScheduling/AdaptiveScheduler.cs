@@ -151,16 +151,23 @@ namespace OmenSuperHub.AdaptiveScheduling
         /// </summary>
         public static string GetScenarioDisplayName(AppScenario scenario)
         {
-            return scenario switch
+            switch (scenario)
             {
-                AppScenario.Gaming => "游戏模式",
-                AppScenario.Content => "创作模式",
-                AppScenario.Office => "办公模式",
-                AppScenario.Media => "娱乐模式",
-                AppScenario.Idle => "节能模式",
-                AppScenario.Custom => "自定义模式",
-                _ => "未知模式"
-            };
+                case AppScenario.Gaming:
+                    return "游戏模式";
+                case AppScenario.Content:
+                    return "创作模式";
+                case AppScenario.Office:
+                    return "办公模式";
+                case AppScenario.Media:
+                    return "娱乐模式";
+                case AppScenario.Idle:
+                    return "节能模式";
+                case AppScenario.Custom:
+                    return "自定义模式";
+                default:
+                    return "未知模式";
+            }
         }
 
         /// <summary>
