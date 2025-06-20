@@ -315,6 +315,9 @@
     <Compile Include="AdaptiveScheduling\AdaptiveConfigForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="AdaptiveScheduling\ProcessSelectorForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="FloatingForm.cs">
       <SubType>Form</SubType>
     </Compile>

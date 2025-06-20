@@ -22,6 +22,8 @@ namespace OmenSuperHub
         private Button _resetButton;
         private Button _addRuleButton;
         private Button _deleteRuleButton;
+        private Button _addScenarioButton;
+        private Button _deleteScenarioButton;
 
         public AdaptiveConfigForm(ConfigManager configManager)
         {
@@ -34,10 +36,11 @@ namespace OmenSuperHub
         {
             this.Text = "自适应性能调度配置";
             this.Size = new Size(800, 600);
+            this.MinimumSize = new Size(700, 500);
             this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
+            this.MinimizeBox = true;
 
             // 创建主标签页控件
             _tabControl = new TabControl();
@@ -227,11 +230,30 @@ namespace OmenSuperHub
             var tabPage = new TabPage("场景配置");
             var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
 
+            // 顶部按钮
+            _addScenarioButton = new Button
+            {
+                Text = "添加场景",
+                Location = new Point(10, 10),
+                Size = new Size(80, 30)
+            };
+            _addScenarioButton.Click += AddScenarioButton_Click;
+            panel.Controls.Add(_addScenarioButton);
+
+            _deleteScenarioButton = new Button
+            {
+                Text = "删除场景",
+                Location = new Point(100, 10),
+                Size = new Size(80, 30)
+            };
+            _deleteScenarioButton.Click += DeleteScenarioButton_Click;
+            panel.Controls.Add(_deleteScenarioButton);
+
             // 数据表格
             _scenarioConfigGrid = new DataGridView
             {
-                Location = new Point(10, 10),
-                Size = new Size(750, 450),
+                Location = new Point(10, 50),
+                Size = new Size(750, 410),
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -391,17 +413,25 @@ namespace OmenSuperHub
 
         private void AddRuleButton_Click(object sender, EventArgs e)
         {
-            var newRule = new AppRule
+            // 显示进程选择器
+            using (var processSelector = new ProcessSelectorForm())
             {
-                ProcessName = "新应用",
-                Scenario = AppScenario.Office,
-                Priority = 5,
-                IsEnabled = true,
-                Description = "新规则"
-            };
+                if (processSelector.ShowDialog() == DialogResult.OK)
+                {
+                    var newRule = new AppRule
+                    {
+                        ProcessName = processSelector.SelectedProcessName,
+                        WindowTitle = processSelector.SelectedWindowTitle,
+                        Scenario = AppScenario.Office,
+                        Priority = 5,
+                        IsEnabled = true,
+                        Description = $"自动添加的规则: {processSelector.SelectedProcessName}"
+                    };
 
-            _configManager.AddAppRule(newRule);
-            LoadAppRules();
+                    _configManager.AddAppRule(newRule);
+                    LoadAppRules();
+                }
+            }
         }
 
         private void DeleteRuleButton_Click(object sender, EventArgs e)
@@ -486,6 +516,122 @@ namespace OmenSuperHub
                 _configManager.ResetToDefault();
                 LoadData();
             }
+        }
+
+        private void AddScenarioButton_Click(object sender, EventArgs e)
+        {
+            // 创建新场景对话框
+            string scenarioName = "";
+            if (ShowInputDialog("新增场景", "请输入新场景的名称:", ref scenarioName) != DialogResult.OK)
+                return;
+                
+            if (!string.IsNullOrWhiteSpace(scenarioName))
+            {
+                // 检查是否已存在
+                var existingScenario = _configManager.Config.Scenarios.Values.FirstOrDefault(s => s.Description == scenarioName);
+                if (existingScenario != null)
+                {
+                    MessageBox.Show("该场景名称已存在！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // 创建新的自定义场景配置
+                var newConfig = new PerformanceConfig
+                {
+                    FanTable = "silent",
+                    FanMode = "default",
+                    FanControl = "auto",
+                    CpuPower = "max",
+                    GpuPower = "max",
+                    TempSensitivity = "medium",
+                    GpuClock = 0,
+                    DBVersion = 2,
+                    Description = scenarioName
+                };
+
+                // 添加到配置中（使用Custom类型）
+                _configManager.Config.Scenarios[AppScenario.Custom] = newConfig;
+                LoadScenarioConfig();
+                MessageBox.Show($"已添加场景: {scenarioName}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void DeleteScenarioButton_Click(object sender, EventArgs e)
+        {
+            if (_scenarioConfigGrid.SelectedRows.Count > 0)
+            {
+                var row = _scenarioConfigGrid.SelectedRows[0];
+                var scenarioName = row.Cells["Scenario"].Value?.ToString();
+                
+                // 不允许删除预定义场景
+                var predefinedScenarios = new[] { "游戏模式", "创作模式", "办公模式", "娱乐模式", "节能模式" };
+                if (predefinedScenarios.Contains(scenarioName))
+                {
+                    MessageBox.Show("不能删除预定义的场景！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (MessageBox.Show($"确定要删除场景 '{scenarioName}' 吗？", "确认删除", 
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    // 找到对应的场景并删除
+                    var scenarioToRemove = _configManager.Config.Scenarios
+                        .FirstOrDefault(s => AdaptiveScheduler.GetScenarioDisplayName(s.Key) == scenarioName);
+                    
+                    if (scenarioToRemove.Key != AppScenario.Office) // 确保不是默认场景
+                    {
+                        _configManager.Config.Scenarios.Remove(scenarioToRemove.Key);
+                        LoadScenarioConfig();
+                        MessageBox.Show($"已删除场景: {scenarioName}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("请选择要删除的场景。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private static DialogResult ShowInputDialog(string title, string promptText, ref string value)
+        {
+            Form form = new Form();
+            Label label = new Label();
+            TextBox textBox = new TextBox();
+            Button buttonOk = new Button();
+            Button buttonCancel = new Button();
+
+            form.Text = title;
+            label.Text = promptText;
+            textBox.Text = value;
+
+            buttonOk.Text = "确定";
+            buttonCancel.Text = "取消";
+            buttonOk.DialogResult = DialogResult.OK;
+            buttonCancel.DialogResult = DialogResult.Cancel;
+
+            label.SetBounds(9, 20, 372, 13);
+            textBox.SetBounds(12, 36, 372, 20);
+            buttonOk.SetBounds(228, 72, 75, 23);
+            buttonCancel.SetBounds(309, 72, 75, 23);
+
+            label.AutoSize = true;
+            textBox.Anchor = textBox.Anchor | AnchorStyles.Right;
+            buttonOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            buttonCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+
+            form.ClientSize = new Size(396, 107);
+            form.Controls.AddRange(new Control[] { label, textBox, buttonOk, buttonCancel });
+            form.ClientSize = new Size(Math.Max(300, label.Right + 10), form.ClientSize.Height);
+            form.FormBorderStyle = FormBorderStyle.FixedDialog;
+            form.StartPosition = FormStartPosition.CenterScreen;
+            form.MinimizeBox = false;
+            form.MaximizeBox = false;
+            form.AcceptButton = buttonOk;
+            form.CancelButton = buttonCancel;
+
+            DialogResult dialogResult = form.ShowDialog();
+            value = textBox.Text;
+            return dialogResult;
         }
     }
 }
