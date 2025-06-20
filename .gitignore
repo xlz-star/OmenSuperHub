@@ -3,3 +3,8 @@
 Bin/
 Obj/
 .vs/
+.vscode/
+.idea/
+Bin/
+Obj/
+packages/
