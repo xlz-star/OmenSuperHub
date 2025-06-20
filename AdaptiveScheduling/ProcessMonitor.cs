@@ -19,6 +19,7 @@ namespace OmenSuperHub.AdaptiveScheduling
         private readonly int _scanInterval;
         private AppScenario _lastDetectedScenario = AppScenario.Office;
         private string _lastActiveProcess = "";
+        private AppScenario _defaultScenario = AppScenario.Office;
 
         public event Action<AppScenario, string> ScenarioDetected;
 
@@ -56,6 +57,15 @@ namespace OmenSuperHub.AdaptiveScheduling
             {
                 Logger.Debug($"[ProcessMonitor] 新AppRules为null，保持空列表");
             }
+        }
+
+        /// <summary>
+        /// 更新默认场景
+        /// </summary>
+        public void UpdateDefaultScenario(AppScenario defaultScenario)
+        {
+            _defaultScenario = defaultScenario;
+            Logger.Debug($"[ProcessMonitor] 默认场景已更新为: {defaultScenario}");
         }
 
         /// <summary>
@@ -148,7 +158,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             }
 
             // 如果没有匹配的规则且资源占用正常，返回默认场景
-            return _configManager.Config.DefaultScenario;
+            return _defaultScenario;
         }
 
         /// <summary>

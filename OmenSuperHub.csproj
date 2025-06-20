@@ -312,6 +312,7 @@
     <Compile Include="AdaptiveScheduling\ProcessMonitor.cs" />
     <Compile Include="AdaptiveScheduling\ConfigManager.cs" />
     <Compile Include="AdaptiveScheduling\AdaptiveScheduler.cs" />
+    <Compile Include="AdaptiveScheduling\Logger.cs" />
     <Compile Include="AdaptiveScheduling\AdaptiveConfigForm.cs">
       <SubType>Form</SubType>
     </Compile>
