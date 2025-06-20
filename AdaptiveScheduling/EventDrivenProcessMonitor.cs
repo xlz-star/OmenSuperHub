@@ -526,15 +526,4 @@ namespace OmenSuperHub.AdaptiveScheduling
 
         #endregion
     }
-
-    /// <summary>
-    /// 进程信息扩展（添加窗口句柄）
-    /// </summary>
-    public class ProcessInfo
-    {
-        public string ProcessName { get; set; } = "";
-        public int ProcessId { get; set; }
-        public string WindowTitle { get; set; } = "";
-        public IntPtr WindowHandle { get; set; } = IntPtr.Zero;
-    }
 }

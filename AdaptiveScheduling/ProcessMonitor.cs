@@ -303,5 +303,6 @@ namespace OmenSuperHub.AdaptiveScheduling
         public string ProcessName { get; set; } = "";
         public int ProcessId { get; set; }
         public string WindowTitle { get; set; } = "";
+        public IntPtr WindowHandle { get; set; } = IntPtr.Zero; // 为事件驱动监控添加窗口句柄
     }
 }
