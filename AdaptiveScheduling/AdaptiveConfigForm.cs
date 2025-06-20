@@ -20,6 +20,7 @@ namespace OmenSuperHub
         private NumericUpDown _scanIntervalNumeric;
         private Button _saveButton;
         private Button _resetButton;
+        private Button _closeButton;
         private Button _addRuleButton;
         private Button _deleteRuleButton;
         private Button _addScenarioButton;
@@ -382,6 +383,16 @@ namespace OmenSuperHub
             _resetButton.Click += ResetButton_Click;
             buttonPanel.Controls.Add(_resetButton);
 
+            _closeButton = new Button
+            {
+                Text = "关闭",
+                Size = new Size(60, 30),
+                Location = new Point(800, 10),
+                DialogResult = DialogResult.Cancel
+            };
+            _closeButton.Click += (s, e) => this.Close();
+            buttonPanel.Controls.Add(_closeButton);
+
             this.Controls.Add(buttonPanel);
         }
 
@@ -487,7 +498,7 @@ namespace OmenSuperHub
                 _configManager.SaveConfig();
 
                 MessageBox.Show("配置已保存成功！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                this.DialogResult = DialogResult.OK;
+                // 保存后不关闭窗口，让用户继续编辑
             }
             catch (Exception ex)
             {
@@ -584,26 +595,48 @@ namespace OmenSuperHub
                 var row = _scenarioConfigGrid.SelectedRows[0];
                 var scenarioName = row.Cells["Scenario"].Value?.ToString();
                 
-                // 不允许删除预定义场景
-                var predefinedScenarios = new[] { "游戏模式", "创作模式", "办公模式", "娱乐模式", "节能模式" };
-                if (predefinedScenarios.Contains(scenarioName))
+                // 检查是否至少保留一个场景
+                if (_configManager.Config.Scenarios.Count <= 1)
                 {
-                    MessageBox.Show("不能删除预定义的场景！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("至少需要保留一个场景配置！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                if (MessageBox.Show($"确定要删除场景 '{scenarioName}' 吗？", "确认删除", 
+                if (MessageBox.Show($"确定要删除场景 '{scenarioName}' 吗？\n\n注意：使用此场景的应用规则将自动切换到默认场景（办公模式）。", "确认删除", 
                     MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     // 找到对应的场景并删除
                     var scenarioToRemove = _configManager.Config.Scenarios
                         .FirstOrDefault(s => AdaptiveScheduler.GetScenarioDisplayName(s.Key) == scenarioName);
                     
-                    if (scenarioToRemove.Key != AppScenario.Office) // 确保不是默认场景
+                    if (scenarioToRemove.Key != default(AppScenario))
                     {
+                        // 获取默认场景（选择一个仍然存在的场景作为默认）
+                        var defaultScenario = _configManager.Config.Scenarios.Keys
+                            .Where(k => k != scenarioToRemove.Key)
+                            .FirstOrDefault();
+                        
+                        // 如果没有找到其他场景，使用Office作为默认
+                        if (defaultScenario == default(AppScenario))
+                        {
+                            defaultScenario = AppScenario.Office;
+                        }
+
+                        // 更新所有使用被删除场景的应用规则
+                        foreach (var rule in _configManager.Config.AppRules.Where(r => r.Scenario == scenarioToRemove.Key))
+                        {
+                            rule.Scenario = defaultScenario;
+                        }
+
+                        // 删除场景配置
                         _configManager.Config.Scenarios.Remove(scenarioToRemove.Key);
+                        
+                        // 刷新界面
                         LoadScenarioConfig();
-                        MessageBox.Show($"已删除场景: {scenarioName}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        LoadAppRules();
+                        
+                        MessageBox.Show($"已删除场景: {scenarioName}\n相关应用规则已更新为: {AdaptiveScheduler.GetScenarioDisplayName(defaultScenario)}", 
+                            "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
