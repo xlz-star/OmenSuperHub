@@ -22,7 +22,10 @@ namespace OmenSuperHub.AdaptiveScheduling
 
         public AdaptiveScheduler()
         {
+            Console.WriteLine($"[AdaptiveScheduler] 开始初始化自适应调度器");
             _configManager = new ConfigManager();
+            Console.WriteLine($"[AdaptiveScheduler] ConfigManager创建完成，AppRules数量: {_configManager.Config.AppRules.Count}");
+            
             _processMonitor = new ProcessMonitor(_configManager.Config.AppRules, _configManager.Config.ScanInterval);
             _performanceController = new PerformanceController();
 
@@ -31,6 +34,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             // 加载保存的状态
             _isEnabled = _configManager.Config.IsAutoSchedulingEnabled;
             _currentScenario = _configManager.Config.CurrentScenario;
+            Console.WriteLine($"[AdaptiveScheduler] 初始化完成，当前场景: {_currentScenario}, 自动调度: {_isEnabled}");
         }
 
         /// <summary>
@@ -87,6 +91,7 @@ namespace OmenSuperHub.AdaptiveScheduling
 
             // 更新进程监控器的应用规则
             _processMonitor.StopMonitoring();
+            _processMonitor.UpdateAppRules(_configManager.Config.AppRules);
 
             if (_isEnabled)
             {

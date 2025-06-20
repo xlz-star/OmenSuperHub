@@ -41,6 +41,18 @@ namespace OmenSuperHub.AdaptiveScheduling
         }
 
         /// <summary>
+        /// 更新应用规则列表
+        /// </summary>
+        public void UpdateAppRules(List<AppRule> appRules)
+        {
+            _appRules.Clear();
+            if (appRules != null)
+            {
+                _appRules.AddRange(appRules);
+            }
+        }
+
+        /// <summary>
         /// 开始监控
         /// </summary>
         public void StartMonitoring()

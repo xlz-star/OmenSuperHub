@@ -29,15 +29,19 @@ namespace OmenSuperHub.AdaptiveScheduling
         {
             try
             {
+                Console.WriteLine($"[ConfigManager] 开始加载配置，文件路径: {_configFilePath}");
                 if (File.Exists(_configFilePath))
                 {
+                    Console.WriteLine($"[ConfigManager] 配置文件存在，正在读取...");
                     string json = File.ReadAllText(_configFilePath);
                     _config = JsonConvert.DeserializeObject<ScenarioConfig>(json);
+                    Console.WriteLine($"[ConfigManager] 配置加载成功，AppRules数量: {_config.AppRules?.Count ?? 0}");
                     
                     // 如果反序列化后AppRules为null，初始化为空列表（不添加默认规则）
                     if (_config.AppRules == null)
                     {
                         _config.AppRules = new List<AppRule>();
+                        Console.WriteLine($"[ConfigManager] AppRules为null，初始化为空列表");
                     }
                     
                     // 如果反序列化后Scenarios为null，初始化默认场景
@@ -45,12 +49,15 @@ namespace OmenSuperHub.AdaptiveScheduling
                     {
                         _config.Scenarios = new Dictionary<AppScenario, PerformanceConfig>();
                         _config.InitializeDefaultScenariosOnly();
+                        Console.WriteLine($"[ConfigManager] Scenarios为空，初始化默认场景");
                     }
                 }
                 else
                 {
+                    Console.WriteLine($"[ConfigManager] 配置文件不存在，创建新配置");
                     _config = new ScenarioConfig();
                     SaveConfig();
+                    Console.WriteLine($"[ConfigManager] 新配置已保存，AppRules数量: {_config.AppRules.Count}");
                 }
 
                 // 从注册表加载运行时设置
@@ -70,8 +77,10 @@ namespace OmenSuperHub.AdaptiveScheduling
         {
             try
             {
+                Console.WriteLine($"[ConfigManager] 开始保存配置，AppRules数量: {_config.AppRules.Count}");
                 string json = JsonConvert.SerializeObject(_config, Formatting.Indented);
                 File.WriteAllText(_configFilePath, json);
+                Console.WriteLine($"[ConfigManager] 配置已保存到: {_configFilePath}");
                 SaveRuntimeSettings();
             }
             catch (Exception ex)
