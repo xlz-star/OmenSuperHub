@@ -48,12 +48,32 @@ namespace OmenSuperHub.AdaptiveScheduling
             _eventDrivenMonitor.ScenarioDetected += OnScenarioDetected;
 
             _performanceController = new PerformanceController();
-            _currentMonitorType = monitorType;
+            
+            // 从配置加载监控模式，如果配置中没有则使用参数传入的默认值
+            if (_configManager.Config.MonitorMode == "Timer")
+            {
+                _currentMonitorType = MonitorType.Timer;
+            }
+            else if (_configManager.Config.MonitorMode == "EventDriven")
+            {
+                _currentMonitorType = MonitorType.EventDriven;
+            }
+            else
+            {
+                _currentMonitorType = monitorType;
+            }
 
             // 加载保存的状态
             _isEnabled = _configManager.Config.IsAutoSchedulingEnabled;
             _currentScenario = _configManager.Config.CurrentScenario;
             Logger.Info($"[AdaptiveScheduler] 初始化完成，当前场景: {_currentScenario}, 自动调度: {_isEnabled}, 监控模式: {_currentMonitorType}");
+            
+            // 如果配置中启用了自动调度，则启动监控
+            if (_isEnabled)
+            {
+                Logger.Info($"[AdaptiveScheduler] 配置中已启用自动调度，正在启动监控器...");
+                Enable();
+            }
         }
 
         /// <summary>
@@ -61,11 +81,17 @@ namespace OmenSuperHub.AdaptiveScheduling
         /// </summary>
         public void Enable()
         {
-            if (_isEnabled) return;
+            if (_isEnabled) 
+            {
+                Logger.Info($"[AdaptiveScheduler] 自适应调度已经启用，跳过重复启用");
+                return;
+            }
 
             _isEnabled = true;
             _isManualOverride = false;
             _configManager.SetAutoSchedulingEnabled(true);
+            
+            Logger.Info($"[AdaptiveScheduler] 启用自适应调度，当前监控模式: {_currentMonitorType}");
             
             // 根据当前监控模式启动相应的监控器
             if (_currentMonitorType == MonitorType.EventDriven)
