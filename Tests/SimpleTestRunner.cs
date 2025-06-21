@@ -33,6 +33,12 @@ namespace OmenSuperHub.Tests
             TestScenarioDisplayNames();
             TestPerformanceController();
             TestAppRuleProperties();
+            
+            // 运行场景菜单测试
+            Console.WriteLine("\n运行独立测试:");
+            AdaptiveSchedulingTests.RunAllTests();
+            EventDrivenMonitorTest.Run();
+            TestScenarioMenu.Run();
 
             // 输出测试结果
             Console.WriteLine($"\n测试完成！");

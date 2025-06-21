@@ -52,6 +52,7 @@ namespace OmenSuperHub {
     static NotifyIcon trayIcon;
     static FloatingForm floatingForm;
     static AdaptiveScheduler adaptiveScheduler;
+    static ToolStripMenuItem adaptiveSchedulingMenu;
 
     [STAThread]
     static void Main(string[] args) {
@@ -673,7 +674,7 @@ namespace OmenSuperHub {
       trayIcon.ContextMenuStrip.Items.Add(settingMenu);
 
       // 添加自适应调度菜单
-      ToolStripMenuItem adaptiveSchedulingMenu = new ToolStripMenuItem("自适应调度");
+      adaptiveSchedulingMenu = new ToolStripMenuItem("自适应调度");
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("启用自动调度", "adaptiveEnabledGroup", (s, e) => {
         adaptiveScheduler.Enable();
         SaveAdaptiveConfig();
@@ -684,27 +685,8 @@ namespace OmenSuperHub {
       }, true));
       adaptiveSchedulingMenu.DropDownItems.Add(new ToolStripSeparator());
       
-      // 手动场景切换
-      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("游戏模式", "adaptiveScenarioGroup", (s, e) => {
-        adaptiveScheduler.SetScenario(AppScenario.Gaming);
-        SaveAdaptiveConfig();
-      }, false));
-      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("创作模式", "adaptiveScenarioGroup", (s, e) => {
-        adaptiveScheduler.SetScenario(AppScenario.Content);
-        SaveAdaptiveConfig();
-      }, false));
-      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("办公模式", "adaptiveScenarioGroup", (s, e) => {
-        adaptiveScheduler.SetScenario(AppScenario.Office);
-        SaveAdaptiveConfig();
-      }, true));
-      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("娱乐模式", "adaptiveScenarioGroup", (s, e) => {
-        adaptiveScheduler.SetScenario(AppScenario.Media);
-        SaveAdaptiveConfig();
-      }, false));
-      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("节能模式", "adaptiveScenarioGroup", (s, e) => {
-        adaptiveScheduler.SetScenario(AppScenario.Idle);
-        SaveAdaptiveConfig();
-      }, false));
+      // 手动场景切换 - 初始化时先添加占位符
+      adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("场景加载中...", "adaptiveScenarioGroup", (s, e) => { }, false));
       adaptiveSchedulingMenu.DropDownItems.Add(new ToolStripSeparator());
       adaptiveSchedulingMenu.DropDownItems.Add(CreateMenuItem("配置管理", null, (s, e) => {
         ShowAdaptiveConfigForm();
@@ -795,6 +777,26 @@ namespace OmenSuperHub {
           // 销毁图标句柄
           DestroyIcon(hIcon);
         }
+      }
+    }
+
+    // 获取场景显示名称
+    static string GetScenarioDisplayName(AppScenario scenario) {
+      switch (scenario) {
+        case AppScenario.Gaming:
+          return "游戏模式";
+        case AppScenario.Content:
+          return "创作模式";
+        case AppScenario.Office:
+          return "办公模式";
+        case AppScenario.Media:
+          return "娱乐模式";
+        case AppScenario.Idle:
+          return "节能模式";
+        case AppScenario.Custom:
+          return "自定义模式";
+        default:
+          return scenario.ToString();
       }
     }
 
@@ -1936,6 +1938,9 @@ namespace OmenSuperHub {
         
         // 更新菜单状态
         UpdateAdaptiveMenuState();
+        
+        // 重建场景菜单
+        RebuildScenarioMenu();
       } catch (Exception ex) {
         Console.WriteLine($"初始化自适应调度失败: {ex.Message}");
       }
@@ -2142,30 +2147,66 @@ namespace OmenSuperHub {
         UpdateCheckedState("adaptiveEnabledGroup", isEnabled ? "启用自动调度" : "禁用自动调度");
         
         AppScenario currentScenario = adaptiveScheduler?.CurrentScenario ?? AppScenario.Office;
-        string scenarioName;
-        switch (currentScenario) {
-          case AppScenario.Gaming:
-            scenarioName = "游戏模式";
-            break;
-          case AppScenario.Content:
-            scenarioName = "创作模式";
-            break;
-          case AppScenario.Office:
-            scenarioName = "办公模式";
-            break;
-          case AppScenario.Media:
-            scenarioName = "娱乐模式";
-            break;
-          case AppScenario.Idle:
-            scenarioName = "节能模式";
-            break;
-          default:
-            scenarioName = "办公模式";
-            break;
-        }
+        string scenarioName = GetScenarioDisplayName(currentScenario);
         UpdateCheckedState("adaptiveScenarioGroup", scenarioName);
       } catch (Exception ex) {
         Console.WriteLine($"更新自适应菜单状态失败: {ex.Message}");
+      }
+    }
+
+    static void RebuildScenarioMenu() {
+      try {
+        if (adaptiveSchedulingMenu == null || adaptiveScheduler == null) return;
+
+        // 找到场景菜单项的起始和结束位置
+        int startIndex = -1;
+        int endIndex = -1;
+        
+        for (int i = 0; i < adaptiveSchedulingMenu.DropDownItems.Count; i++) {
+          var item = adaptiveSchedulingMenu.DropDownItems[i];
+          if (item is ToolStripMenuItem menuItem && menuItem.Tag as string == "adaptiveScenarioGroup") {
+            if (startIndex == -1) startIndex = i;
+            endIndex = i;
+          }
+        }
+
+        // 移除旧的场景菜单项
+        if (startIndex != -1) {
+          for (int i = endIndex; i >= startIndex; i--) {
+            adaptiveSchedulingMenu.DropDownItems.RemoveAt(i);
+          }
+        }
+
+        // 获取配置并添加新的场景菜单项
+        var configManager = adaptiveScheduler.GetConfigManager();
+        var scenarios = configManager.Config.Scenarios;
+        
+        // 按照预定义的顺序排列场景
+        var orderedScenarios = new[] { 
+          AppScenario.Gaming, 
+          AppScenario.Content, 
+          AppScenario.Office, 
+          AppScenario.Media, 
+          AppScenario.Idle,
+          AppScenario.Custom 
+        };
+        
+        int insertIndex = startIndex;
+        foreach (var scenarioKey in orderedScenarios) {
+          if (scenarios.ContainsKey(scenarioKey)) {
+            string scenarioName = GetScenarioDisplayName(scenarioKey);
+            bool isChecked = adaptiveScheduler.CurrentScenario == scenarioKey;
+            
+            var menuItem = CreateMenuItem(scenarioName, "adaptiveScenarioGroup", (s, e) => {
+              adaptiveScheduler.SetScenario(scenarioKey);
+              SaveAdaptiveConfig();
+            }, isChecked);
+            
+            adaptiveSchedulingMenu.DropDownItems.Insert(insertIndex++, menuItem);
+          }
+        }
+      } catch (Exception ex) {
+        Console.WriteLine($"重建场景菜单失败: {ex.Message}");
       }
     }
 
@@ -2178,6 +2219,7 @@ namespace OmenSuperHub {
           // 无论用户是否点击确定，都重新加载配置（因为保存按钮不关闭窗口）
           adaptiveScheduler.ReloadConfig();
           UpdateAdaptiveMenuState();
+          RebuildScenarioMenu();
         }
       } catch (Exception ex) {
         MessageBox.Show($"打开配置窗口失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
