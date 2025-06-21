@@ -1710,6 +1710,13 @@ namespace OmenSuperHub {
             }
 
             DBVersion = (int)key.GetValue("DBVersion", 2);
+            
+            // 强制使用普通版本，避免功耗解锁失败的提示
+            if (DBVersion == 1)
+            {
+                DBVersion = 2;
+                SaveConfig("DBVersion");
+            }
             switch (DBVersion) {
               case 1:
                 DBVersion = 1;
