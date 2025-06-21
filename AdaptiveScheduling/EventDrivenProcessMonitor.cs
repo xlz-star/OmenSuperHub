@@ -65,6 +65,13 @@ namespace OmenSuperHub.AdaptiveScheduling
         
         private bool _isMonitoring = false;
         private bool _disposed = false;
+        
+        // 防抖相关
+        private Timer _debounceTimer;
+        private AppScenario _pendingScenario;
+        private string _pendingProcessName;
+        private readonly object _debounceLock = new object();
+        private int _debounceDelay = 3000; // 默认3秒
 
         public event Action<AppScenario, string> ScenarioDetected;
 
@@ -212,6 +219,15 @@ namespace OmenSuperHub.AdaptiveScheduling
         {
             CheckCurrentForegroundWindow();
         }
+        
+        /// <summary>
+        /// 更新防抖延迟时间
+        /// </summary>
+        public void UpdateDebounceDelay(int delayInSeconds)
+        {
+            _debounceDelay = delayInSeconds * 1000;
+            Logger.Info($"[EventDrivenProcessMonitor] 防抖延迟已更新为: {delayInSeconds} 秒");
+        }
 
         #endregion
 
@@ -282,10 +298,55 @@ namespace OmenSuperHub.AdaptiveScheduling
                 
                 if (detectedScenario != _lastDetectedScenario)
                 {
-                    _lastDetectedScenario = detectedScenario;
-                    Logger.Info($"[EventDrivenProcessMonitor] 场景变化: {detectedScenario} (触发: {processInfo.ProcessName})");
-                    ScenarioDetected?.Invoke(detectedScenario, processInfo.ProcessName);
+                    Logger.Debug($"[EventDrivenProcessMonitor] 检测到场景变化: {_lastDetectedScenario} -> {detectedScenario}，启动防抖计时器");
+                    
+                    lock (_debounceLock)
+                    {
+                        // 保存待处理的场景
+                        _pendingScenario = detectedScenario;
+                        _pendingProcessName = processInfo.ProcessName;
+                        
+                        // 取消之前的防抖计时器
+                        _debounceTimer?.Dispose();
+                        
+                        // 创建新的防抖计时器
+                        _debounceTimer = new Timer(DebounceCallback, null, _debounceDelay, Timeout.Infinite);
+                    }
                 }
+            }
+        }
+        
+        /// <summary>
+        /// 防抖回调
+        /// </summary>
+        private void DebounceCallback(object state)
+        {
+            lock (_debounceLock)
+            {
+                // 再次检查当前前台窗口，确保场景没有改变
+                IntPtr currentHwnd = GetForegroundWindow();
+                ProcessInfo currentProcess = GetOrCacheProcessInfo(currentHwnd);
+                
+                if (currentProcess != null)
+                {
+                    var currentScenario = DetectScenarioForProcess(currentProcess);
+                    
+                    // 如果场景仍然是待处理的场景，则执行切换
+                    if (currentScenario == _pendingScenario)
+                    {
+                        _lastDetectedScenario = _pendingScenario;
+                        Logger.Info($"[EventDrivenProcessMonitor] 防抖完成，场景切换: {_pendingScenario} (触发: {_pendingProcessName})");
+                        ScenarioDetected?.Invoke(_pendingScenario, _pendingProcessName);
+                    }
+                    else
+                    {
+                        Logger.Debug($"[EventDrivenProcessMonitor] 防抖期间场景已改变，取消切换 ({_pendingScenario} -> {currentScenario})");
+                    }
+                }
+                
+                // 清理计时器
+                _debounceTimer?.Dispose();
+                _debounceTimer = null;
             }
         }
 
@@ -408,29 +469,42 @@ namespace OmenSuperHub.AdaptiveScheduling
             if (processInfo == null || string.IsNullOrEmpty(processInfo.ProcessName))
                 return _defaultScenario;
 
-            // 精确匹配进程名
-            var exactMatch = _appRules
-                .Where(rule => rule.IsEnabled && !string.IsNullOrEmpty(rule.ProcessName))
-                .FirstOrDefault(rule => processInfo.ProcessName.Contains(rule.ProcessName.ToLower()));
+            List<AppRule> matchedRules = new List<AppRule>();
 
-            if (exactMatch != null)
+            // 收集所有匹配的规则
+            foreach (var rule in _appRules.Where(r => r.IsEnabled))
             {
-                Logger.Debug($"[EventDrivenProcessMonitor] 进程名匹配: {processInfo.ProcessName} -> {exactMatch.Scenario}");
-                return exactMatch.Scenario;
+                bool matched = false;
+
+                // 进程名匹配
+                if (!string.IsNullOrEmpty(rule.ProcessName) && 
+                    processInfo.ProcessName.Contains(rule.ProcessName.ToLower()))
+                {
+                    matched = true;
+                    Logger.Debug($"[EventDrivenProcessMonitor] 进程名匹配: {processInfo.ProcessName} 匹配规则 {rule.ProcessName}");
+                }
+
+                // 窗口标题匹配
+                if (!matched && !string.IsNullOrEmpty(rule.WindowTitle) && 
+                    !string.IsNullOrEmpty(processInfo.WindowTitle) &&
+                    processInfo.WindowTitle.ToLower().Contains(rule.WindowTitle.ToLower()))
+                {
+                    matched = true;
+                    Logger.Debug($"[EventDrivenProcessMonitor] 窗口标题匹配: {processInfo.WindowTitle} 匹配规则 {rule.WindowTitle}");
+                }
+
+                if (matched)
+                {
+                    matchedRules.Add(rule);
+                }
             }
 
-            // 窗口标题匹配
-            if (!string.IsNullOrEmpty(processInfo.WindowTitle))
+            // 如果有匹配的规则，返回最高优先级的场景
+            if (matchedRules.Count > 0)
             {
-                var titleMatch = _appRules
-                    .Where(rule => rule.IsEnabled && !string.IsNullOrEmpty(rule.WindowTitle))
-                    .FirstOrDefault(rule => processInfo.WindowTitle.ToLower().Contains(rule.WindowTitle.ToLower()));
-
-                if (titleMatch != null)
-                {
-                    Logger.Debug($"[EventDrivenProcessMonitor] 窗口标题匹配: {processInfo.WindowTitle} -> {titleMatch.Scenario}");
-                    return titleMatch.Scenario;
-                }
+                var highestPriorityRule = matchedRules.OrderByDescending(r => r.Priority).First();
+                Logger.Debug($"[EventDrivenProcessMonitor] 选择最高优先级规则: {highestPriorityRule.ProcessName ?? highestPriorityRule.WindowTitle} (优先级: {highestPriorityRule.Priority}) -> {highestPriorityRule.Scenario}");
+                return highestPriorityRule.Scenario;
             }
 
             // 没有匹配的规则，返回默认场景
@@ -511,6 +585,7 @@ namespace OmenSuperHub.AdaptiveScheduling
                 {
                     StopMonitoring();
                     _backgroundTimer?.Dispose();
+                    _debounceTimer?.Dispose();
                     _windowCache?.Clear();
                 }
 

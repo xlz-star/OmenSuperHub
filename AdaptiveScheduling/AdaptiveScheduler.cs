@@ -45,6 +45,7 @@ namespace OmenSuperHub.AdaptiveScheduling
 
             _eventDrivenMonitor = new EventDrivenProcessMonitor(_configManager.Config.AppRules);
             _eventDrivenMonitor.UpdateDefaultScenario(_configManager.Config.DefaultScenario);
+            _eventDrivenMonitor.UpdateDebounceDelay(_configManager.Config.DebounceDelay);
             _eventDrivenMonitor.ScenarioDetected += OnScenarioDetected;
 
             _performanceController = new PerformanceController();
@@ -159,6 +160,7 @@ namespace OmenSuperHub.AdaptiveScheduling
             _processMonitor.UpdateDefaultScenario(_configManager.Config.DefaultScenario);
             _eventDrivenMonitor.UpdateAppRules(_configManager.Config.AppRules);
             _eventDrivenMonitor.UpdateDefaultScenario(_configManager.Config.DefaultScenario);
+            _eventDrivenMonitor.UpdateDebounceDelay(_configManager.Config.DebounceDelay);
             Logger.Info($"[AdaptiveScheduler] 两个监控器已更新AppRules，数量: {_configManager.Config.AppRules.Count}");
 
             if (_isEnabled)

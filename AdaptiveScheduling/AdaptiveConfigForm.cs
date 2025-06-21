@@ -19,6 +19,7 @@ namespace OmenSuperHub
         private DataGridView _appRulesGrid;
         private DataGridView _scenarioConfigGrid;
         private NumericUpDown _scanIntervalNumeric;
+        private NumericUpDown _debounceDelayNumeric;
         private Button _saveButton;
         private Button _resetButton;
         private Button _closeButton;
@@ -145,12 +146,44 @@ namespace OmenSuperHub
             panel.Controls.Add(_monitorModeCombo);
             yPos += 40;
 
+            // 防抖延迟
+            var debounceLabel = new Label
+            {
+                Text = "防抖延迟（秒）：",
+                Location = new Point(20, yPos),
+                Size = new Size(120, 25)
+            };
+            panel.Controls.Add(debounceLabel);
+
+            _debounceDelayNumeric = new NumericUpDown
+            {
+                Location = new Point(150, yPos),
+                Size = new Size(80, 25),
+                Minimum = 1,
+                Maximum = 10,
+                Value = 3,
+                DecimalPlaces = 0
+            };
+            panel.Controls.Add(_debounceDelayNumeric);
+            
+            var debounceHelpLabel = new Label
+            {
+                Text = "防止误切换的等待时间",
+                Location = new Point(240, yPos),
+                Size = new Size(150, 25),
+                ForeColor = Color.Gray
+            };
+            panel.Controls.Add(debounceHelpLabel);
+            yPos += 40;
+
             // 说明文字
             var helpLabel = new Label
             {
                 Text = "• 启用自适应调度后，系统会根据运行的应用自动切换性能模式\\n" +
                        "• 扫描间隔决定了检测应用的频率（仅定时器模式），越小响应越快但占用资源越多\\n" +
                        "• 事件驱动模式响应更快（<100ms）且资源占用更低，推荐优先使用\\n" +
+                       "• 防抖延迟可以避免短暂切换应用时的误触发，建议设置2-5秒\\n" +
+                       "• 应用规则支持优先级策略，数值越大优先级越高\\n" +
                        "• 手动设置场景会临时禁用自动调度，重新启用后会恢复自动检测",
                 Location = new Point(20, yPos),
                 Size = new Size(500, 100),
@@ -457,6 +490,9 @@ namespace OmenSuperHub
             
             // 更新扫描间隔显示状态
             UpdateScanIntervalVisibility();
+            
+            // 设置防抖延迟
+            _debounceDelayNumeric.Value = _configManager.Config.DebounceDelay;
 
             // 更新应用规则的场景选项
             UpdateAppRuleScenarioOptions();
@@ -623,6 +659,10 @@ namespace OmenSuperHub
                 // 保存监控模式
                 _configManager.Config.MonitorMode = _monitorModeCombo.SelectedIndex == 0 ? "Timer" : "EventDriven";
                 Logger.Info($"[AdaptiveConfigForm] 保存监控模式: {_configManager.Config.MonitorMode}");
+                
+                // 保存防抖延迟
+                _configManager.Config.DebounceDelay = (int)_debounceDelayNumeric.Value;
+                Logger.Info($"[AdaptiveConfigForm] 保存防抖延迟: {_configManager.Config.DebounceDelay} 秒");
 
                 // 保存应用规则
                 SaveAppRules();

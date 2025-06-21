@@ -60,6 +60,7 @@ namespace OmenSuperHub.AdaptiveScheduling
         public float CpuThreshold { get; set; } = 80.0f; // CPU占用阈值
         public float GpuThreshold { get; set; } = 50.0f; // GPU占用阈值
         public string MonitorMode { get; set; } = "EventDriven"; // 监控模式：Timer或EventDriven
+        public int DebounceDelay { get; set; } = 3; // 防抖延迟（秒）
 
         public ScenarioConfig()
         {
