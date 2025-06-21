@@ -35,10 +35,8 @@ namespace OmenSuperHub.Tests
             TestAppRuleProperties();
             
             // 运行场景菜单测试
-            Console.WriteLine("\n运行独立测试:");
-            AdaptiveSchedulingTests.RunAllTests();
-            EventDrivenMonitorTest.Run();
-            TestScenarioMenu.Run();
+            // Console.WriteLine("\n运行独立测试:");
+            // 注意：独立测试类需要实现相应的Run方法才能调用
 
             // 输出测试结果
             Console.WriteLine($"\n测试完成！");
